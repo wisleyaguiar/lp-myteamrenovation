@@ -180,13 +180,7 @@
 
 @utility gold-rule {
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--gold) 20%,
-    var(--gold) 80%,
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
 }
 
 @utility fade-up {

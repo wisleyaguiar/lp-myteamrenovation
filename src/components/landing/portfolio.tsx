@@ -1,22 +1,44 @@
 import { Section, Eyebrow, Heading, GoldRule } from "./primitives";
-import kitchenHero from "@/assets/portfolio-kitchen-hero.jpg.asset.json";
-import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg.asset.json";
-import bathSubway from "@/assets/portfolio-bath-subway.jpg.asset.json";
-import bathMaster from "@/assets/portfolio-bath-master.jpg.asset.json";
-import bathMarble from "@/assets/portfolio-bath-marble.jpg.asset.json";
-import stairs from "@/assets/portfolio-stairs.jpg.asset.json";
-import floorGray from "@/assets/portfolio-floor-gray.jpg.asset.json";
-import floorWood from "@/assets/portfolio-floor-wood.jpg.asset.json";
+import kitchenHero from "@/assets/portfolio-kitchen-hero.jpg";
+import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg";
+import bathSubway from "@/assets/portfolio-bath-subway.jpg";
+import bathMaster from "@/assets/portfolio-bath-master.jpg";
+import bathMarble from "@/assets/portfolio-bath-marble.jpg";
+import stairs from "@/assets/portfolio-stairs.jpg";
+import floorGray from "@/assets/portfolio-floor-gray.jpg";
+import floorWood from "@/assets/portfolio-floor-wood.jpg";
 
 const PROJECTS = [
-  { src: kitchenHero.url, alt: "Modern white kitchen with blue shiplap island", label: "Modern Kitchen", tall: true },
-  { src: bathMarble.url, alt: "Master bathroom with marble walls and round mirror", label: "Marble Bathroom" },
-  { src: kitchenDark.url, alt: "Dark cabinet kitchen with quartz waterfall island", label: "Custom Kitchen" },
-  { src: bathMaster.url, alt: "Primary bathroom with freestanding tub", label: "Primary Bathroom", tall: true },
-  { src: bathSubway.url, alt: "Subway tile walk-in shower with brass fixtures", label: "Walk-In Shower" },
-  { src: stairs.url, alt: "Custom hardwood staircase treads", label: "Custom Carpentry" },
-  { src: floorGray.url, alt: "Gray LVP flooring installation", label: "Luxury Flooring" },
-  { src: floorWood.url, alt: "Warm oak wood flooring installation", label: "Hardwood Floors" },
+  {
+    src: kitchenHero,
+    alt: "Modern white kitchen with blue shiplap island",
+    label: "Modern Kitchen",
+    tall: true,
+  },
+  {
+    src: bathMarble,
+    alt: "Master bathroom with marble walls and round mirror",
+    label: "Marble Bathroom",
+  },
+  {
+    src: kitchenDark,
+    alt: "Dark cabinet kitchen with quartz waterfall island",
+    label: "Custom Kitchen",
+  },
+  {
+    src: bathMaster,
+    alt: "Primary bathroom with freestanding tub",
+    label: "Primary Bathroom",
+    tall: true,
+  },
+  {
+    src: bathSubway,
+    alt: "Subway tile walk-in shower with brass fixtures",
+    label: "Walk-In Shower",
+  },
+  { src: stairs, alt: "Custom hardwood staircase treads", label: "Custom Carpentry" },
+  { src: floorGray, alt: "Gray LVP flooring installation", label: "Luxury Flooring" },
+  { src: floorWood, alt: "Warm oak wood flooring installation", label: "Hardwood Floors" },
 ];
 
 export function PortfolioSection() {
@@ -27,7 +49,8 @@ export function PortfolioSection() {
         <Heading className="mt-6">Recent Projects Delivered With Precision</Heading>
         <GoldRule className="mx-auto mt-6 max-w-[6rem]" />
         <p className="mt-6 text-muted-foreground">
-          A selection of bathrooms, kitchens, flooring, and custom carpentry projects completed by our team.
+          A selection of bathrooms, kitchens, flooring, and custom carpentry projects completed by
+          our team.
         </p>
       </div>
 

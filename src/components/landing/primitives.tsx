@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-
 interface SectionProps {
   id?: string;
   className?: string;
@@ -13,9 +12,7 @@ interface SectionProps {
 export function Section({ id, className, containerClassName, children }: SectionProps) {
   return (
     <section id={id} className={cn("relative py-24 md:py-32", className)}>
-      <div className={cn("container mx-auto max-w-7xl px-6", containerClassName)}>
-        {children}
-      </div>
+      <div className={cn("container mx-auto max-w-7xl px-6", containerClassName)}>{children}</div>
     </section>
   );
 }
@@ -76,4 +73,3 @@ export function GoldCTA({ href = "#contact", children, className }: GoldCTAProps
     </div>
   );
 }
-

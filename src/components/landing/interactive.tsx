@@ -55,11 +55,7 @@ export function FaqSection() {
         <div className="lg:col-span-2">
           <Accordion type="single" collapsible className="w-full">
             {FAQS.map((faq, i) => (
-              <AccordionItem
-                key={i}
-                value={`item-${i}`}
-                className="border-b border-border"
-              >
+              <AccordionItem key={i} value={`item-${i}`} className="border-b border-border">
                 <AccordionTrigger className="py-6 text-left font-display text-lg text-foreground hover:no-underline hover:text-gold data-[state=open]:text-gold">
                   {faq.q}
                 </AccordionTrigger>
@@ -120,7 +116,8 @@ export function ContactFormSection() {
       <div className="mx-auto max-w-xl">
         <div className="text-center">
           <p className="text-muted-foreground">
-            Fill out the brief form below and Leonardo will reach out directly to discuss your project.
+            Fill out the brief form below and Leonardo will reach out directly to discuss your
+            project.
           </p>
         </div>
 
@@ -129,7 +126,8 @@ export function ContactFormSection() {
             <CheckCircle2 className="h-14 w-14 text-gold" strokeWidth={1.2} />
             <p className="mt-6 font-display text-2xl text-foreground">Thank you.</p>
             <p className="mt-3 max-w-md text-muted-foreground">
-              Your request is in. Leonardo will contact you shortly to schedule your on-site consultation.
+              Your request is in. Leonardo will contact you shortly to schedule your on-site
+              consultation.
             </p>
           </div>
         ) : (
@@ -233,7 +231,8 @@ export function FinalCtaSection() {
     <Section className="border-y border-border">
       <div className="mx-auto max-w-4xl text-center">
         <p className="mt-6 text-base leading-relaxed text-muted-foreground md:text-lg">
-          My Team Renovation delivers master-level craftsmanship, efficient timelines, and the personal respect your home deserves.
+          My Team Renovation delivers master-level craftsmanship, efficient timelines, and the
+          personal respect your home deserves.
         </p>
         <a
           href="#contact"

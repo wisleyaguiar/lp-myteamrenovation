@@ -15,23 +15,34 @@ import {
 } from "lucide-react";
 import { Section, GoldRule, GoldCTA } from "./primitives";
 import kitchenImage from "@/assets/kitchen-luxury.jpg";
-import bathMarble from "@/assets/portfolio-bath-marble.jpg.asset.json";
-import bathSubway from "@/assets/portfolio-bath-subway.jpg.asset.json";
-import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg.asset.json";
-import stairs from "@/assets/portfolio-stairs.jpg.asset.json";
-import floorWood from "@/assets/portfolio-floor-wood.jpg.asset.json";
-
+import bathMarble from "@/assets/portfolio-bath-marble.jpg";
+import bathSubway from "@/assets/portfolio-bath-subway.jpg";
+import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg";
+import stairs from "@/assets/portfolio-stairs.jpg";
+import floorWood from "@/assets/portfolio-floor-wood.jpg";
 
 const WHY_BULLETS = [
-  { icon: Bath, text: "Specialized Bathroom Remodeling — full-service residential transformations." },
+  {
+    icon: Bath,
+    text: "Specialized Bathroom Remodeling — full-service residential transformations.",
+  },
   { icon: ShowerHead, text: "Walk-In Shower Conversions with frameless glass and linear drains." },
-  { icon: Layers, text: "Luxury Flooring — Hardwood, LVP, Laminate, Tile from wholesale channels." },
-  { icon: ChefHat, text: "Kitchen Remodeling — custom cabinetry, premium counters, open concepts." },
+  {
+    icon: Layers,
+    text: "Luxury Flooring — Hardwood, LVP, Laminate, Tile from wholesale channels.",
+  },
+  {
+    icon: ChefHat,
+    text: "Kitchen Remodeling — custom cabinetry, premium counters, open concepts.",
+  },
   { icon: Hammer, text: "Custom Carpentry — finish work, walk-in closets, accent walls." },
   { icon: Timer, text: "Industry-Leading Timelines — a single bathroom finished in just 5 days." },
   { icon: UserRound, text: "A Single Point of Contact — work directly with owner Leonardo." },
   { icon: Sparkles, text: "Rigorous Daily Cleanups — job site vacuumed at end of every day." },
-  { icon: ShieldCheck, text: "1-Year Warranty — a formal, rock-solid commitment on every project." },
+  {
+    icon: ShieldCheck,
+    text: "1-Year Warranty — a formal, rock-solid commitment on every project.",
+  },
 ];
 
 export function WhyChooseSection() {
@@ -69,7 +80,8 @@ export function WhyChooseSection() {
 
         <div className="lg:col-span-2">
           <p className="text-base leading-relaxed text-muted-foreground">
-            A streamlined, efficient construction process designed to modernize your space, maximize property value, and deliver ultimate comfort for your family.
+            A streamlined, efficient construction process designed to modernize your space, maximize
+            property value, and deliver ultimate comfort for your family.
           </p>
           <ul className="mt-8 space-y-4">
             {WHY_BULLETS.map(({ icon: Icon, text }) => (
@@ -91,14 +103,16 @@ export function WhyChooseSection() {
           <span className="text-gold-gradient italic">investment in your lifestyle.</span>
         </p>
         <p className="mt-6 text-base leading-relaxed text-muted-foreground md:text-lg">
-          Impersonal corporate contractors ignore your calls, push back schedules, and go silent when you need them most. My Team Renovation stands as the trusted partner for families and professionals who demand elite standards of premium craftsmanship—without sacrificing a seamless, personalized, and stress-free experience.
+          Impersonal corporate contractors ignore your calls, push back schedules, and go silent
+          when you need them most. My Team Renovation stands as the trusted partner for families and
+          professionals who demand elite standards of premium craftsmanship—without sacrificing a
+          seamless, personalized, and stress-free experience.
         </p>
         <GoldCTA>Schedule Your Consultation</GoldCTA>
       </div>
     </Section>
   );
 }
-
 
 const LATE_LESSONS = [
   {
@@ -133,8 +147,7 @@ export function LateLessonsSection() {
             className="border-l-2 border-gold bg-card/60 p-8 transition-colors hover:bg-card"
           >
             <p className="font-display text-lg text-foreground md:text-xl">
-              <span className="mr-3 text-destructive">✕</span>
-              "{item.title}"
+              <span className="mr-3 text-destructive">✕</span>"{item.title}"
             </p>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground md:text-base">
               {item.detail}
@@ -152,7 +165,7 @@ export function ValuePropositionSection() {
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="relative aspect-[4/5] overflow-hidden ring-1 ring-border">
           <img
-            src={bathMarble.url}
+            src={bathMarble}
             alt="Marble bathroom with round mirror"
             loading="lazy"
             className="h-full w-full object-cover"
@@ -162,13 +175,19 @@ export function ValuePropositionSection() {
         <div>
           <GoldRule className="w-24" />
           <p className="mt-8 text-base leading-relaxed text-muted-foreground md:text-lg">
-            While the American remodeling market forces you to choose between rigid bureaucratic corporations and disorganized independent crews, My Team Renovation brings the perfect balance: the precision and punctuality of corporate project management, backed by the care and dedication of a family-owned local business.
+            While the American remodeling market forces you to choose between rigid bureaucratic
+            corporations and disorganized independent crews, My Team Renovation brings the perfect
+            balance: the precision and punctuality of corporate project management, backed by the
+            care and dedication of a family-owned local business.
           </p>
           <p className="mt-8 font-display text-2xl leading-snug text-foreground md:text-3xl">
-            Our promise is simple: to elevate your living space while completely removing the stress of remodeling.
+            Our promise is simple: to elevate your living space while completely removing the stress
+            of remodeling.
           </p>
           <p className="mt-8 text-base leading-relaxed text-muted-foreground md:text-lg">
-            You will never be left hanging by an unanswered voicemail. We plan every phase down to the millimeter so you know exactly when the project will be handed over—with zero surprises and zero excuses.
+            You will never be left hanging by an unanswered voicemail. We plan every phase down to
+            the millimeter so you know exactly when the project will be handed over—with zero
+            surprises and zero excuses.
           </p>
         </div>
       </div>
@@ -220,7 +239,6 @@ export function ServicesSection() {
       <GoldCTA>Request Your Free Estimate</GoldCTA>
     </Section>
   );
-
 }
 
 const IDEAL_YES = [
@@ -243,7 +261,7 @@ export function IdealClientSection() {
         <div className="flex flex-col gap-6">
           <div className="relative aspect-[4/3] overflow-hidden ring-1 ring-border">
             <img
-              src={bathSubway.url}
+              src={bathSubway}
               alt="Bathroom with subway tile"
               loading="lazy"
               className="h-full w-full object-cover"
@@ -264,7 +282,7 @@ export function IdealClientSection() {
         <div className="flex flex-col gap-6">
           <div className="relative aspect-[4/3] overflow-hidden ring-1 ring-border">
             <img
-              src={floorWood.url}
+              src={floorWood}
               alt="Wood flooring detail"
               loading="lazy"
               className="h-full w-full object-cover"
@@ -336,7 +354,8 @@ export function RisksSection() {
           The question isn't just how much your remodel costs.
         </p>
         <p className="mt-6 font-display text-3xl leading-snug text-foreground md:text-4xl">
-          What is your <span className="text-gold-gradient italic">peace of mind</span> and the equity of your home worth to you?
+          What is your <span className="text-gold-gradient italic">peace of mind</span> and the
+          equity of your home worth to you?
         </p>
       </div>
     </Section>
@@ -384,7 +403,7 @@ export function PrecisionSection() {
         </div>
         <div className="relative aspect-[4/5] overflow-hidden ring-1 ring-border lg:col-span-2">
           <img
-            src={kitchenDark.url}
+            src={kitchenDark}
             alt="Custom dark cabinet kitchen"
             loading="lazy"
             className="h-full w-full object-cover"
@@ -397,15 +416,42 @@ export function PrecisionSection() {
   );
 }
 
-
 const STEPS = [
-  { n: "01", title: "Dedicated One-on-One Consultation", text: "We map out your exact aesthetic goals, design preferences, and functional needs with Leonardo directly." },
-  { n: "02", title: "Technical Site Visit & Structural Assessment", text: "Comprehensive on-site analysis of plumbing, electrical, and framing—performed personally by Leo." },
-  { n: "03", title: "Transparent, Itemized Estimate", text: "A clear, comprehensive proposal. Total price certainty with no hidden fees or mid-project surprises." },
-  { n: "04", title: "Material Procurement & Guidance", text: "Expert direction and wholesale source matching for finish materials, plus managed logistics." },
-  { n: "05", title: "Streamlined Construction & Daily Updates", text: "Kicks off exactly on time. Continuous progress updates and direct communication with your site manager." },
-  { n: "06", title: "Deep Clean & Key Handover", text: "Project wrapped on schedule. A thorough post-construction cleanup so you enjoy your new space the same day." },
-  { n: "07", title: "Post-Project Inspection & Warranty", text: "Final walkthrough followed by activation of your comprehensive 1-year structural warranty." },
+  {
+    n: "01",
+    title: "Dedicated One-on-One Consultation",
+    text: "We map out your exact aesthetic goals, design preferences, and functional needs with Leonardo directly.",
+  },
+  {
+    n: "02",
+    title: "Technical Site Visit & Structural Assessment",
+    text: "Comprehensive on-site analysis of plumbing, electrical, and framing—performed personally by Leo.",
+  },
+  {
+    n: "03",
+    title: "Transparent, Itemized Estimate",
+    text: "A clear, comprehensive proposal. Total price certainty with no hidden fees or mid-project surprises.",
+  },
+  {
+    n: "04",
+    title: "Material Procurement & Guidance",
+    text: "Expert direction and wholesale source matching for finish materials, plus managed logistics.",
+  },
+  {
+    n: "05",
+    title: "Streamlined Construction & Daily Updates",
+    text: "Kicks off exactly on time. Continuous progress updates and direct communication with your site manager.",
+  },
+  {
+    n: "06",
+    title: "Deep Clean & Key Handover",
+    text: "Project wrapped on schedule. A thorough post-construction cleanup so you enjoy your new space the same day.",
+  },
+  {
+    n: "07",
+    title: "Post-Project Inspection & Warranty",
+    text: "Final walkthrough followed by activation of your comprehensive 1-year structural warranty.",
+  },
 ];
 
 export function ProcessSection() {
@@ -426,7 +472,6 @@ export function ProcessSection() {
       <GoldCTA>Start Your Blueprint Today</GoldCTA>
     </Section>
   );
-
 }
 
 const COMPARISON = [
@@ -500,22 +545,48 @@ export function ComparisonSection() {
       <GoldCTA>Choose The Right Team</GoldCTA>
     </Section>
   );
-
 }
 
 const PATHWAYS = [
-  { title: "Instant Home Equity", text: "Immediately boost your property's appraisal by modernizing key spaces." },
-  { title: "Optimized Layouts", text: "Maximize your home's footprint with thoughtfully engineered kitchens and bathrooms." },
-  { title: "Modern Architectural Style", text: "Replace dated carpets or worn surfaces with ultra-durable premium finishes." },
-  { title: "Total Financial Certainty", text: "Your custom budget is locked in and respected from start to finish." },
-  { title: "Mitigated Liabilities", text: "Every installation executed strictly to local building codes." },
+  {
+    title: "Instant Home Equity",
+    text: "Immediately boost your property's appraisal by modernizing key spaces.",
+  },
+  {
+    title: "Optimized Layouts",
+    text: "Maximize your home's footprint with thoughtfully engineered kitchens and bathrooms.",
+  },
+  {
+    title: "Modern Architectural Style",
+    text: "Replace dated carpets or worn surfaces with ultra-durable premium finishes.",
+  },
+  {
+    title: "Total Financial Certainty",
+    text: "Your custom budget is locked in and respected from start to finish.",
+  },
+  {
+    title: "Mitigated Liabilities",
+    text: "Every installation executed strictly to local building codes.",
+  },
 ];
 
 const EMOTIONAL = [
-  { title: "Complete Peace of Mind", text: "Knowing you can contact the head of the company directly at any moment." },
-  { title: "The Pride of Hosting", text: "The joy of opening your doors to friends, neighbors, and extended family." },
-  { title: "A Sense of Achievement", text: "Seeing your hard work materialize into a sophisticated, tailored environment." },
-  { title: "Pure Relief", text: "Navigating a significant home transformation with none of the horror stories." },
+  {
+    title: "Complete Peace of Mind",
+    text: "Knowing you can contact the head of the company directly at any moment.",
+  },
+  {
+    title: "The Pride of Hosting",
+    text: "The joy of opening your doors to friends, neighbors, and extended family.",
+  },
+  {
+    title: "A Sense of Achievement",
+    text: "Seeing your hard work materialize into a sophisticated, tailored environment.",
+  },
+  {
+    title: "Pure Relief",
+    text: "Navigating a significant home transformation with none of the horror stories.",
+  },
 ];
 
 export function PathwaysAndEmotionSection() {
@@ -523,7 +594,7 @@ export function PathwaysAndEmotionSection() {
     <Section id="value-add">
       <div className="relative mb-16 aspect-[16/6] overflow-hidden ring-1 ring-border">
         <img
-          src={stairs.url}
+          src={stairs}
           alt="Custom staircase and interior finish"
           loading="lazy"
           className="h-full w-full object-cover"
@@ -535,9 +606,7 @@ export function PathwaysAndEmotionSection() {
           <ul className="space-y-6">
             {PATHWAYS.map((item, i) => (
               <li key={item.title} className="flex gap-5">
-                <span className="font-display text-2xl text-gold">
-                  0{i + 1}
-                </span>
+                <span className="font-display text-2xl text-gold">0{i + 1}</span>
                 <div>
                   <p className="font-display text-lg text-foreground">{item.title}</p>
                   <p className="mt-1 text-sm text-muted-foreground md:text-base">{item.text}</p>
@@ -549,7 +618,8 @@ export function PathwaysAndEmotionSection() {
 
         <div>
           <p className="text-muted-foreground">
-            Because at the end of the day, a beautifully remodeled home is about how it makes your family feel.
+            Because at the end of the day, a beautifully remodeled home is about how it makes your
+            family feel.
           </p>
           <ul className="mt-10 space-y-6">
             {EMOTIONAL.map((item) => (
@@ -573,7 +643,8 @@ export function EstimateCallSection() {
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent" />
         <div className="mx-auto max-w-3xl text-center">
           <p className="mt-8 text-base leading-relaxed text-muted-foreground md:text-lg">
-            Schedule an initial site consultation to unlock the potential of your current space and establish an efficient, guaranteed timeline for construction.
+            Schedule an initial site consultation to unlock the potential of your current space and
+            establish an efficient, guaranteed timeline for construction.
           </p>
           <a
             href="#contact"

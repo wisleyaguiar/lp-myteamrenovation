@@ -94,13 +94,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "My Team Renovation" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "My Team Renovation — Premium Home Remodeling, Owner-Led" },
-      { name: "twitter:description", content: "Luxury bathroom, kitchen, flooring, and custom carpentry remodels delivered on the fastest timelines in the market. Owner-led project management by Leonardo Brandão. 1-year warranty." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6f51a58e-3056-484c-b02e-a1b124856efb/id-preview-576f4a83--f5e16a1f-6fd7-4fa9-a85d-a69e8cf7ae18.lovable.app-1783715987209.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6f51a58e-3056-484c-b02e-a1b124856efb/id-preview-576f4a83--f5e16a1f-6fd7-4fa9-a85d-a69e8cf7ae18.lovable.app-1783715987209.png" },
+      {
+        name: "twitter:description",
+        content:
+          "Luxury bathroom, kitchen, flooring, and custom carpentry remodels delivered on the fastest timelines in the market. Owner-led project management by Leonardo Brandão. 1-year warranty.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6f51a58e-3056-484c-b02e-a1b124856efb/id-preview-576f4a83--f5e16a1f-6fd7-4fa9-a85d-a69e8cf7ae18.lovable.app-1783715987209.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6f51a58e-3056-484c-b02e-a1b124856efb/id-preview-576f4a83--f5e16a1f-6fd7-4fa9-a85d-a69e8cf7ae18.lovable.app-1783715987209.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

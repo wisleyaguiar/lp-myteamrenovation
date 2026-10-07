@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import logoAsset from "@/assets/mtr-logo.png.asset.json";
+import logoAsset from "@/assets/mtr-logo.png";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
@@ -19,7 +19,7 @@ export function SiteHeader() {
       <div className="container mx-auto flex h-28 max-w-7xl items-center justify-between px-6">
         <a href="#top" className="flex items-center gap-3">
           <img
-            src={logoAsset.url}
+            src={logoAsset}
             alt="My Team Renovation"
             className="h-20 w-auto md:h-24"
             width={160}
@@ -27,7 +27,6 @@ export function SiteHeader() {
           />
           <span className="sr-only">My Team Renovation</span>
         </a>
-
 
         <nav className="hidden items-center gap-10 md:flex">
           {NAV.map((item) => (
@@ -42,7 +41,11 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden md:block">
-          <Button asChild size="lg" className="bg-gold-gradient text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-90 rounded-none tracking-wide">
+          <Button
+            asChild
+            size="lg"
+            className="bg-gold-gradient text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-90 rounded-none tracking-wide"
+          >
             <a href="#contact">Free Estimate</a>
           </Button>
         </div>
@@ -88,7 +91,7 @@ export function SiteFooter() {
       <div className="container mx-auto max-w-7xl px-6 py-16">
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
           <div>
-            <img src={logoAsset.url} alt="My Team Renovation" className="h-28 w-auto md:h-36" />
+            <img src={logoAsset} alt="My Team Renovation" className="h-28 w-auto md:h-36" />
             <p className="mt-4 max-w-sm text-sm text-muted-foreground">
               Premium Residential Construction, Remodeling &amp; Luxury Flooring.
             </p>
