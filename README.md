@@ -237,13 +237,45 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Desenvolvimento Local
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+# Instalar dependências
+npm install
+
+# Rodar servidor de desenvolvimento (localhost:8080)
 npm run dev
+
+# Baixar/sincronizar assets do Lovable localmente (se necessário)
+npm run assets:download
 ```
+
+## Scripts Disponíveis
+
+- `npm run dev`: Inicia o servidor de desenvolvimento Vite local.
+- `npm run build`: Compila o projeto com preset Node.js (`.output/server/index.mjs`).
+- `npm run start`: Inicia o servidor SSR compilado em produção (porta 3000).
+- `npm run assets:download`: Executa [`scripts/download-assets.mjs`](scripts/download-assets.mjs) para baixar arquivos reais a partir de stubs `.asset.json`.
+- `npm run lint`: Valida padrões de código com ESLint.
+- `npm run format`: Formata arquivos com Prettier.
+
+## Deploy & Produção (Coolify & Docker)
+
+O projeto está configurado com um `Dockerfile` multi-stage (`node:22-alpine`) e utiliza o preset `node-server` do Nitro.
+
+### Build & Execução com Docker
+
+```sh
+# Build da imagem
+docker build -t lp-myteamrenovation .
+
+# Executar container (porta 3000)
+docker run -p 3000:3000 lp-myteamrenovation
+```
+
+### CI/CD Automático com Coolify
+
+1. O workflow [`.github/workflows/coolify-deploy.yml`](.github/workflows/coolify-deploy.yml) é acionado a cada push ou merge na branch `main`.
+2. A Action realiza uma requisição POST autenticada para o webhook da sua instância Coolify utilizando o secret `COOLIFY_API_TOKEN`.
+3. O Coolify baixa a branch `main`, reconstrói a imagem Docker e publica a versão mais recente com zero downtime.
+
