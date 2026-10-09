@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SITE_URL } from "@/components/landing/site-data";
+import heroDesktopWebp from "@/assets/lp/hero-desktop.webp";
+import heroMobileWebp from "@/assets/lp/hero-mobile.webp";
+import { SITE, SITE_URL } from "@/components/landing/site-data";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader, SiteFooter } from "@/components/landing/chrome";
 import { HeroSection } from "@/components/landing/hero";
@@ -36,7 +38,44 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:url", content: `${SITE_URL}/` },
     ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/` }],
+    links: [
+      { rel: "canonical", href: `${SITE_URL}/` },
+      {
+        rel: "preload",
+        as: "image",
+        href: heroDesktopWebp,
+        type: "image/webp",
+        media: "(min-width: 768px)",
+        fetchPriority: "high",
+      },
+      {
+        rel: "preload",
+        as: "image",
+        href: heroMobileWebp,
+        type: "image/webp",
+        media: "(max-width: 767px)",
+        fetchPriority: "high",
+      },
+    ],
+    // RF-21: AggregateRating só com nota e total confirmados (iguais aos exibidos).
+    scripts: SITE.google
+      ? [
+          {
+            type: "application/ld+json",
+            children: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "HomeAndConstructionBusiness",
+              name: "My Team Renovation",
+              url: `${SITE_URL}/`,
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: SITE.google.rating,
+                reviewCount: SITE.google.reviewCount,
+              },
+            }),
+          },
+        ]
+      : [],
   }),
   component: Index,
 });
@@ -47,6 +86,7 @@ function Index() {
       <SiteHeader />
       <main>
         <HeroSection />
+        <TestimonialsSection />
         <WhyChooseSection />
         <LateLessonsSection />
         <ValuePropositionSection />
@@ -57,7 +97,6 @@ function Index() {
         <PrecisionSection />
         <ProcessSection />
         <ComparisonSection />
-        <TestimonialsSection />
         <PathwaysAndEmotionSection />
         <EstimateCallSection />
         <FaqSection />
