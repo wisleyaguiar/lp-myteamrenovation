@@ -4,6 +4,7 @@ import heroDesktopWebp from "@/assets/lp/hero-desktop.webp";
 import heroDesktopJpg from "@/assets/lp/hero-desktop.jpg";
 import heroMobileWebp from "@/assets/lp/hero-mobile.webp";
 import heroMobileJpg from "@/assets/lp/hero-mobile.jpg";
+import { cn } from "@/lib/utils";
 import { SITE } from "@/components/landing/site-data";
 import { VslCard, VslMobileCard, VslSpacer, useVslUrl } from "@/components/landing/vsl";
 
@@ -37,8 +38,41 @@ function TrustLine() {
   );
 }
 
+// Texto longo original do hero. Com o H1 novo (RF-22) ele sai do hero e vai para o topo de #why.
+export function HeroLongCopy({ inHero = false }: { inHero?: boolean }) {
+  return (
+    <>
+      <p
+        className={cn(
+          "max-w-3xl text-base leading-relaxed md:text-lg",
+          inHero ? "fade-up mt-4 max-w-2xl text-foreground md:mt-8" : "text-muted-foreground",
+        )}
+      >
+        Homeowners who value exceptional quality know the true value of their time and property.
+        With large firms you become another number on a spreadsheet, trapped in voicemail, endless
+        emails, and a revolving door of workers.
+      </p>
+      <p
+        className={cn(
+          "max-w-3xl text-base leading-relaxed md:text-lg",
+          inHero
+            ? "fade-up mt-4 hidden max-w-2xl text-foreground md:block"
+            : "mt-4 text-muted-foreground",
+        )}
+      >
+        <span className="text-foreground">My Team Renovation eliminates this headache.</span>{" "}
+        Locally owned and family-operated, we combine rigorous project management with a direct line
+        to the person in charge, from start to finish.
+      </p>
+    </>
+  );
+}
+
 export function HeroSection() {
   const vslUrl = useVslUrl();
+  const heroSupport = SITE.copy.heroH1
+    ? ((SITE.serviceArea?.length ? SITE.copy.heroSupport : null) ?? SITE.copy.heroSupportNoCities)
+    : null;
   return (
     <section
       id="top"
@@ -78,16 +112,13 @@ export function HeroSection() {
               )}
             </h1>
 
-            <p className="fade-up mt-4 max-w-2xl text-base leading-relaxed text-foreground md:mt-8 md:text-lg">
-              Homeowners who value exceptional quality know the true value of their time and
-              property. With large firms you become another number on a spreadsheet, trapped in
-              voicemail, endless emails, and a revolving door of workers.
-            </p>
-            <p className="fade-up mt-4 hidden max-w-2xl text-base leading-relaxed text-foreground md:block md:text-lg">
-              <span className="text-foreground">My Team Renovation eliminates this headache.</span>{" "}
-              Locally owned and family-operated, we combine rigorous project management with a
-              direct line to the person in charge, from start to finish.
-            </p>
+            {heroSupport ? (
+              <p className="fade-up mt-4 max-w-2xl text-base leading-relaxed text-foreground md:mt-8 md:text-lg">
+                {heroSupport}
+              </p>
+            ) : (
+              <HeroLongCopy inHero />
+            )}
 
             <div className="fade-up mt-6 flex flex-wrap items-center gap-4 md:mt-10">
               <Button

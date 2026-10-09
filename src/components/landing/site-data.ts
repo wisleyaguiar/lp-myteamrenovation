@@ -1,4 +1,4 @@
-// Somente dados confirmados (R4) — preencher na fase F-DADOS.
+// Somente dados confirmados (R4). Copy do Anexo B aprovada pela agência/cliente (PDF avaliação, 7 out 2026).
 // Todo valor dependente do cliente começa null/false; a UI omite o que estiver ausente.
 export const SITE_URL = "https://myteamrenovation.com";
 
@@ -47,22 +47,23 @@ export const SITE: SiteData = {
   google: null,
   contentCutApproved: false,
   copy: {
-    heroH1: null,
+    heroH1: "Your primary bathroom, fully remodeled in 5 days — managed personally by the owner.",
     heroSupport: null,
-    heroSupportNoCities: null,
-    ctaLabel: null,
-    headerCtaLabel: null,
-    phoneLabel: null,
-    submitLabel: null,
+    heroSupportNoCities:
+      "Locally owned. One-year warranty, a spotless job site every day, and a direct line to Leonardo — no call centers, no rotating crews.",
+    ctaLabel: "Book Your Free In-Home Consultation",
+    headerCtaLabel: "Free Estimate",
+    phoneLabel: "Mobile phone",
+    submitLabel: "Send to Leonardo",
     consentText: null,
-    galleryLabel12: null,
-    galleryLabel13: null,
+    galleryLabel12: "SPA BATHROOM",
+    galleryLabel13: "SHOWER WITH BENCH",
     h2: {
       services: null,
-      process: null,
-      compare: null,
-      faq: null,
-      contact: null,
+      process: "How your project runs",
+      compare: "How we compare",
+      faq: "Questions homeowners ask us",
+      contact: "Book your free in-home consultation",
       finalCta: null,
     },
   },

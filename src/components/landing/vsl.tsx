@@ -90,7 +90,7 @@ export function VslMobileCard({ src }: { src: string }) {
           <ResponsiveImage
             webp={posterWebp}
             fallback={posterJpg}
-            alt=""
+            alt="Presenter speaking to the camera in the video thumbnail"
             width={720}
             height={1280}
             className="h-full w-full object-cover"

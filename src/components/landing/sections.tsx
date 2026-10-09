@@ -11,6 +11,7 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { HeroLongCopy } from "./hero";
 import { Section, GoldRule, GoldCTA, Heading, ResponsiveImage } from "./primitives";
 import { SITE } from "./site-data";
 import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg";
@@ -50,6 +51,11 @@ const WHY_BULLETS = [
 export function WhyChooseSection() {
   return (
     <Section id="why" className="bg-obsidian">
+      {SITE.copy.heroH1 && (
+        <div className="mb-16">
+          <HeroLongCopy />
+        </div>
+      )}
       <div className="mt-16">
         <p className="max-w-3xl text-base leading-relaxed text-muted-foreground">
           A streamlined, efficient construction process designed to modernize your space, maximize
