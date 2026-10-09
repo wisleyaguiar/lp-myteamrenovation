@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -104,11 +104,19 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   ) : null;
 }
 
+// RF-18/R4: só sugere ligar se o telefone confirmado existir.
+const SUBMIT_ERROR = `We couldn't send your request. Please try again${SITE.phone ? " or call us" : ""}.`;
+
+function readCookie(name: string): string | undefined {
+  const hit = document.cookie.split("; ").find((c) => c.startsWith(`${name}=`));
+  return hit ? decodeURIComponent(hit.slice(name.length + 1)) : undefined;
+}
+
 export function ContactFormSection() {
   const [service, setService] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -122,20 +130,40 @@ export function ContactFormSection() {
       company: String(data.get("company") ?? ""),
       event_id: crypto.randomUUID(),
       event_source_url: window.location.href,
+      fbp: readCookie("_fbp"),
+      fbc: readCookie("_fbc"),
+      consent: SITE.copy.consentText ? true : undefined,
     });
     if (!parsed.success) {
       const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) next[String(issue.path[0])] ??= issue.message;
       setErrors(next);
+      setFormError("");
       document.getElementById(Object.keys(next)[0])?.focus();
       return;
     }
     setErrors({});
+    setFormError("");
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSubmitting(false);
-    setDone(true);
-    toast.success("Thanks! Leonardo will reach out shortly.");
+    try {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      // RF-14: o Lead do browser só dispara em /thank-you, com este event_id (dedupe com a CAPI).
+      try {
+        sessionStorage.setItem("mtr_lead_event_id", parsed.data.event_id);
+      } catch {
+        // sessionStorage bloqueado: o redirecionamento segue, sem Lead no browser.
+      }
+      window.location.assign("/thank-you");
+    } catch {
+      setSubmitting(false);
+      setFormError(SUBMIT_ERROR);
+      toast.error(SUBMIT_ERROR);
+    }
   };
 
   return (
@@ -149,156 +177,151 @@ export function ContactFormSection() {
           </p>
         </div>
 
-        {done ? (
-          <div className="mt-14 flex flex-col items-center border border-gold/40 bg-card p-12 text-center">
-            <CheckCircle2 className="h-14 w-14 text-gold" strokeWidth={1.2} />
-            <p className="mt-6 font-display text-2xl text-foreground">Thank you.</p>
-            <p className="mt-3 max-w-md text-muted-foreground">
-              Your request is in. Leonardo will contact you shortly to schedule your on-site
-              consultation.
-            </p>
-          </div>
-        ) : (
-          <form
-            onSubmit={onSubmit}
-            noValidate
-            className="mt-14 rounded-2xl border border-white/10 bg-[#0f1a2b] p-8 shadow-2xl md:p-10"
-          >
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-white">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  required
-                  autoComplete="name"
-                  placeholder="Your full name"
-                  aria-invalid={!!errors.name}
-                  aria-describedby={errors.name ? "name-error" : undefined}
-                  className={FIELD_CLASS}
-                />
-                <FieldError id="name" message={errors.name} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium text-white">
-                  {SITE.copy.phoneLabel ?? "WhatsApp"}
-                </Label>
-                <div className="flex gap-2">
-                  <div
-                    aria-hidden="true"
-                    className="flex h-12 w-16 items-center justify-center rounded-lg border border-white/10 bg-[#152238] text-sm text-foreground"
-                  >
-                    +1
-                  </div>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    required
-                    autoComplete="tel"
-                    placeholder="(000) 000-0000"
-                    aria-invalid={!!errors.phone}
-                    aria-describedby={errors.phone ? "phone-error" : undefined}
-                    className={`${FIELD_CLASS} flex-1`}
-                  />
-                </div>
-                <FieldError id="phone" message={errors.phone} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-white">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "email-error" : undefined}
-                  className={FIELD_CLASS}
-                />
-                <FieldError id="email" message={errors.email} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="zip" className="text-sm font-medium text-white">
-                  ZIP code
-                </Label>
-                <Input
-                  id="zip"
-                  name="zip"
-                  required
-                  inputMode="numeric"
-                  pattern="\d{5}"
-                  maxLength={5}
-                  autoComplete="postal-code"
-                  placeholder="77494"
-                  aria-invalid={!!errors.zip}
-                  aria-describedby={errors.zip ? "zip-error" : undefined}
-                  className={FIELD_CLASS}
-                />
-                <FieldError id="zip" message={errors.zip} />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="service" className="text-sm font-medium text-white">
-                  Remodeling Service Needed
-                </Label>
-                <Select name="service" required value={service} onValueChange={setService}>
-                  <SelectTrigger
-                    id="service"
-                    aria-required="true"
-                    aria-invalid={!!errors.service}
-                    aria-describedby={errors.service ? "service-error" : undefined}
-                    className="h-12 rounded-lg border-white/10 bg-[#152238] text-base text-foreground focus:ring-gold data-[placeholder]:text-muted-foreground"
-                  >
-                    <SelectValue placeholder="Select a service" />
-                  </SelectTrigger>
-                  <SelectContent className="border-white/10 bg-[#152238] text-foreground">
-                    {SERVICE_OPTIONS.map((s) => (
-                      <SelectItem
-                        key={s}
-                        value={s}
-                        className="focus:bg-gold/10 focus:text-foreground"
-                      >
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError id="service" message={errors.service} />
-              </div>
-
-              {/* Honeypot (RF-43): fora da tela e da árvore de acessibilidade. */}
-              <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-                <input type="text" name="company" tabIndex={-1} autoComplete="off" />
-              </div>
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="mt-14 rounded-2xl border border-white/10 bg-[#0f1a2b] p-8 shadow-2xl md:p-10"
+        >
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium text-white">
+                Full Name
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                required
+                autoComplete="name"
+                placeholder="Your full name"
+                aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? "name-error" : undefined}
+                className={FIELD_CLASS}
+              />
+              <FieldError id="name" message={errors.name} />
             </div>
 
-            {SITE.copy.consentText && (
-              <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-                {SITE.copy.consentText}
-              </p>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium text-white">
+                {SITE.copy.phoneLabel ?? "WhatsApp"}
+              </Label>
+              <div className="flex gap-2">
+                <div
+                  aria-hidden="true"
+                  className="flex h-12 w-16 items-center justify-center rounded-lg border border-white/10 bg-[#152238] text-sm text-foreground"
+                >
+                  +1
+                </div>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  placeholder="(000) 000-0000"
+                  aria-invalid={!!errors.phone}
+                  aria-describedby={errors.phone ? "phone-error" : undefined}
+                  className={`${FIELD_CLASS} flex-1`}
+                />
+              </div>
+              <FieldError id="phone" message={errors.phone} />
+            </div>
 
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="mt-10 h-auto min-h-14 w-full whitespace-normal rounded-lg bg-gold-gradient px-4 py-4 text-center text-sm uppercase tracking-[0.12em] text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold md:tracking-[0.2em]"
-            >
-              {submitting
-                ? "Sending…"
-                : (SITE.copy.submitLabel ?? "Connect Directly with My Team Renovation")}
-              <ArrowRight className="ml-3 h-4 w-4 shrink-0" />
-            </Button>
-          </form>
-        )}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-white">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                className={FIELD_CLASS}
+              />
+              <FieldError id="email" message={errors.email} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="zip" className="text-sm font-medium text-white">
+                ZIP code
+              </Label>
+              <Input
+                id="zip"
+                name="zip"
+                required
+                inputMode="numeric"
+                pattern="\d{5}"
+                maxLength={5}
+                autoComplete="postal-code"
+                placeholder="77494"
+                aria-invalid={!!errors.zip}
+                aria-describedby={errors.zip ? "zip-error" : undefined}
+                className={FIELD_CLASS}
+              />
+              <FieldError id="zip" message={errors.zip} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="service" className="text-sm font-medium text-white">
+                Remodeling Service Needed
+              </Label>
+              <Select name="service" required value={service} onValueChange={setService}>
+                <SelectTrigger
+                  id="service"
+                  aria-required="true"
+                  aria-invalid={!!errors.service}
+                  aria-describedby={errors.service ? "service-error" : undefined}
+                  className="h-12 rounded-lg border-white/10 bg-[#152238] text-base text-foreground focus:ring-gold data-[placeholder]:text-muted-foreground"
+                >
+                  <SelectValue placeholder="Select a service" />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#152238] text-foreground">
+                  {SERVICE_OPTIONS.map((s) => (
+                    <SelectItem
+                      key={s}
+                      value={s}
+                      className="focus:bg-gold/10 focus:text-foreground"
+                    >
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldError id="service" message={errors.service} />
+            </div>
+
+            {/* Honeypot (RF-43): fora da tela e da árvore de acessibilidade. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+              <input type="text" name="company" tabIndex={-1} autoComplete="off" />
+            </div>
+          </div>
+
+          {SITE.copy.consentText && (
+            <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+              {SITE.copy.consentText}
+            </p>
+          )}
+
+          {formError && (
+            <p role="alert" className="mt-6 text-sm text-red-300">
+              {formError}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="mt-10 h-auto min-h-14 w-full whitespace-normal rounded-lg bg-gold-gradient px-4 py-4 text-center text-sm uppercase tracking-[0.12em] text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold md:tracking-[0.2em]"
+          >
+            {submitting
+              ? "Sending…"
+              : (SITE.copy.submitLabel ?? "Connect Directly with My Team Renovation")}
+            <ArrowRight className="ml-3 h-4 w-4 shrink-0" />
+          </Button>
+        </form>
       </div>
     </Section>
   );
