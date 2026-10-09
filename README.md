@@ -279,3 +279,40 @@ docker run -p 3000:3000 lp-myteamrenovation
 2. A Action realiza uma requisição POST autenticada para o webhook da sua instância Coolify utilizando o secret `COOLIFY_API_TOKEN`.
 3. O Coolify baixa a branch `main`, reconstrói a imagem Docker e publica a versão mais recente com zero downtime.
 
+
+## Variáveis de ambiente e checklist de deploy
+
+Todas são lidas em **runtime** (Coolify → Environment Variables); trocar um valor exige só redeploy, sem rebuild de código. Modelo em [`.env.example`](.env.example). **Nunca commitar valores.**
+
+| Variável | Escopo | Efeito quando ausente | Onde configurar |
+|---|---|---|---|
+| `LEAD_WEBHOOK_URL` | Servidor | `POST /api/lead` responde 503 `lead_destination_unavailable`; nenhum lead é entregue | Coolify (runtime) |
+| `META_CAPI_ACCESS_TOKEN` | Servidor | Conversions API desativada; o Pixel do browser segue funcionando | Coolify (runtime) |
+| `META_CAPI_TEST_EVENT_CODE` | Servidor | Eventos da CAPI vão para produção (normal). Definir só durante a validação no Test Events | Coolify (runtime) |
+| `META_PIXEL_ID` | Pública (loader da raiz) | Sem Pixel no HTML; a CAPI também não envia | Coolify (runtime) |
+| `GA4_MEASUREMENT_ID` | Pública (loader da raiz) | Sem GA4 no HTML | Coolify (runtime) |
+| `VSL_VIDEO_URL` | Pública (loader da raiz) | Sem cartão de vídeo no hero | Coolify (runtime) |
+
+Valores públicos inválidos (Pixel fora de `^\d{5,20}$`, GA4 fora de `^G-[A-Z0-9]{4,20}$`, vídeo que não seja `https://`) são tratados como ausentes.
+
+### Webhook n8n: teste × produção
+
+- **Dev/teste:** `…/webhook-test/<id>` — só responde com o editor do n8n em escuta.
+- **Produção (Coolify):** `…/webhook/<id>` — exige o workflow **ativo**. Usar a URL `webhook-test` em produção faz todo lead falhar com 502.
+
+### Upload do vídeo (VSL)
+
+1. Gerar o MP4 com `moov` no início (`ffmpeg -i origem.mp4 -c copy -movflags +faststart vls_mtr_lp_web.mp4`). O arquivo não vai para o git (`*.mp4` está no `.gitignore`).
+2. Enviar para o bucket/CDN e usar a URL pública `https://…` em `VSL_VIDEO_URL`.
+3. Conferir com `curl -sI <url>`: `Accept-Ranges: bytes` e `Content-Type: video/mp4`.
+4. Redeploy no Coolify e checar que o cartão do vídeo aparece no hero.
+
+### Ativação dos dados do cliente (F-DADOS)
+
+1. Receber de quem fornece os dados o `DADOS.md` (telefone, área atendida, licença/seguro, perfil e nota do Google, textos aprovados).
+2. Preencher só os itens confirmados em `src/components/landing/site-data.ts`; o que faltar continua `null`/`false` e a seção correspondente permanece omitida.
+3. Definir `META_PIXEL_ID`, `META_CAPI_ACCESS_TOKEN`, `GA4_MEASUREMENT_ID` e, temporariamente, `META_CAPI_TEST_EVENT_CODE`; redeploy.
+4. Validar no Test Events da Meta (Lead do browser e do servidor com o mesmo `event_id`) e no DebugView do GA4.
+5. Remover `META_CAPI_TEST_EVENT_CODE` e redeploy.
+
+Antes de publicar: `npm run lint && npm run build && npm run smoke`. Após o merge, rodar `/ai-context` para atualizar `AGENTS.md` e `docs/agents/`.

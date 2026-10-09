@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import ogImage from "@/assets/lp/og-image.jpg";
 import { SITE_URL } from "@/components/landing/site-data";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { getPublicConfig } from "../lib/public-config";
 
 function NotFoundComponent() {
   return (
@@ -77,6 +78,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 const OG_ALT = "My Team Renovation — premium home remodeling";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: () => getPublicConfig(),
+  staleTime: Infinity,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
