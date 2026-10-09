@@ -14,6 +14,7 @@ import ogImage from "@/assets/lp/og-image.jpg";
 import { SITE_URL } from "@/components/landing/site-data";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { getPublicConfig } from "../lib/public-config";
+import { gtagSnippet, pixelSnippet } from "../lib/tracking";
 
 function NotFoundComponent() {
   return (
@@ -80,7 +81,7 @@ const OG_ALT = "My Team Renovation — premium home remodeling";
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: () => getPublicConfig(),
   staleTime: Infinity,
-  head: () => ({
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -125,6 +126,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap",
       },
+    ],
+    // Pixel e GA4 só entram com ID configurado (RF-08, RF-15); sem env, nenhum script.
+    scripts: [
+      ...(loaderData?.metaPixelId ? [{ children: pixelSnippet(loaderData.metaPixelId) }] : []),
+      ...(loaderData?.ga4MeasurementId
+        ? [
+            {
+              src: `https://www.googletagmanager.com/gtag/js?id=${loaderData.ga4MeasurementId}`,
+              async: true,
+            },
+            { children: gtagSnippet(loaderData.ga4MeasurementId) },
+          ]
+        : []),
     ],
   }),
   shellComponent: RootShell,

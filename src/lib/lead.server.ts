@@ -1,6 +1,7 @@
 // Endpoint de lead (CT-01, CT-06): revalida o payload e encaminha ao webhook n8n.
 // Nunca lança (um throw viraria o HTML 500 do errorMiddleware) e nunca loga a URL nem o lead.
 import { leadSchema } from "@/lib/lead-schema";
+import { sendCapiLead } from "@/lib/meta-capi.server";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 
@@ -80,6 +81,16 @@ export async function handleLead(request: Request): Promise<Response> {
       console.error("lead_upstream_error", { status: res.status, event_id: lead.event_id });
       return json({ error: "upstream_error" }, 502);
     }
+    // CT-02: só após o 2xx do n8n; nunca altera a resposta (falha vira log `capi_failed`).
+    await sendCapiLead({
+      eventId: lead.event_id,
+      eventSourceUrl: lead.event_source_url,
+      userAgent: request.headers.get("user-agent"),
+      fbp: lead.fbp,
+      fbc: lead.fbc,
+      email: lead.email,
+      phone: normalizePhoneE164(lead.phone),
+    });
     return json({ ok: true }, 200);
   } catch (err) {
     if (err instanceof Error && err.name === "TimeoutError") {

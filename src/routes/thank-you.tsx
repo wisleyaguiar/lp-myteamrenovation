@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import logoWebp from "@/assets/lp/logo.webp";
 import logoPng from "@/assets/lp/logo.png";
 import { ResponsiveImage } from "@/components/landing/primitives";
+import { trackLead } from "@/lib/tracking";
 
 export const Route = createFileRoute("/thank-you")({
   head: () => ({
@@ -11,6 +13,17 @@ export const Route = createFileRoute("/thank-you")({
 });
 
 function ThankYou() {
+  // Lead só após envio confirmado (RF-14): a chave é consumida, então reload e acesso direto não disparam.
+  useEffect(() => {
+    try {
+      const id = sessionStorage.getItem("mtr_lead_event_id");
+      if (!id) return;
+      sessionStorage.removeItem("mtr_lead_event_id");
+      trackLead(id);
+    } catch {
+      // sessionStorage indisponível: sem evento.
+    }
+  }, []);
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16 text-foreground">
       <div className="max-w-xl text-center">

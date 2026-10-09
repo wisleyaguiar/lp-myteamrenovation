@@ -1,6 +1,7 @@
 // Smoke test do endpoint de lead e das rotas (T16). Node puro, sem dependências.
 // Uso: npm run build && npm run smoke [-- --tracking]
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import http from "node:http";
 import { join } from "node:path";
@@ -38,6 +39,20 @@ fake.on("connection", (s) => {
 });
 await new Promise((r) => fake.listen(0, "127.0.0.1", r));
 const fakeUrl = `http://127.0.0.1:${fake.address().port}${SECRET_PATH}`;
+
+// Meta falsa (CAPI): FAIL → 400, demais → 200 registrando o corpo.
+let metaMode = "OK";
+const metaHits = [];
+const fakeMeta = http.createServer((req, res) => {
+  let body = "";
+  req.on("data", (c) => (body += c));
+  req.on("end", () => {
+    metaHits.push({ url: req.url, body });
+    res.writeHead(metaMode === "FAIL" ? 400 : 200).end("{}");
+  });
+});
+await new Promise((r) => fakeMeta.listen(0, "127.0.0.1", r));
+const metaUrl = `http://127.0.0.1:${fakeMeta.address().port}`;
 
 async function startApp(port, env) {
   const child = spawn("node", [SERVER], {
@@ -88,6 +103,7 @@ const trackingEnv = TRACKING
 const app = await startApp(3101, {
   LEAD_WEBHOOK_URL: fakeUrl,
   META_CAPI_ACCESS_TOKEN: CAPI_TOKEN,
+  META_CAPI_BASE_URL: metaUrl,
   ...trackingEnv,
 });
 
@@ -166,12 +182,18 @@ try {
 
   const home = await (await fetch(`${app.base}/`)).text();
   if (TRACKING) {
-    check(
-      "--tracking: Pixel e GA4 no HTML",
-      home.includes("connect.facebook.net") &&
-        home.includes("000000000000000") &&
-        home.includes("G-SMOKETEST"),
-    );
+    for (const [name, html] of [
+      ["/", home],
+      ["/thank-you", thanks],
+    ]) {
+      check(
+        `--tracking: Pixel e GA4 em ${name}`,
+        html.includes("connect.facebook.net") &&
+          html.includes("000000000000000") &&
+          html.includes("googletagmanager.com/gtag/js?id=G-SMOKETEST") &&
+          html.includes("G-SMOKETEST"),
+      );
+    }
   } else {
     check(
       "/ sem connect.facebook.net e sem G-",
@@ -197,6 +219,88 @@ try {
   app.stop();
 }
 
+// CAPI (T23): Pixel + token, com Meta falsa.
+const sha = (v) => createHash("sha256").update(v).digest("hex");
+const capi = await startApp(3103, {
+  LEAD_WEBHOOK_URL: fakeUrl,
+  META_PIXEL_ID: "000000000000000",
+  META_CAPI_ACCESS_TOKEN: CAPI_TOKEN,
+  META_CAPI_TEST_EVENT_CODE: "TEST_SMOKE",
+  META_CAPI_BASE_URL: metaUrl,
+});
+try {
+  // Honeypot e falha do n8n não chamam a CAPI.
+  let before = metaHits.length;
+  await post(capi, { ...validLead(), company: "Spam Inc" });
+  mode = "FAIL";
+  await post(capi, validLead());
+  mode = "OK";
+  check("honeypot e n8n 500 não chamam a CAPI", metaHits.length === before);
+
+  // Lead válido: 1 chamada, e-mail e telefone só em SHA-256.
+  const lead = {
+    ...validLead(),
+    email: "  Smoke.Capi@Example.COM ",
+    fbp: "fb.1.1.2",
+    fbc: "fb.1.1.3",
+  };
+  before = metaHits.length;
+  let res = await post(capi, lead);
+  const call = metaHits.length === before + 1 ? metaHits.at(-1) : null;
+  const sentBody = call ? JSON.parse(call.body) : {};
+  const ev = sentBody.data?.[0] ?? {};
+  check("lead válido com CAPI → 200", res.status === 200, `status ${res.status}`);
+  check(
+    "CAPI: Lead com event_id, test_event_code e user_data hasheado",
+    call?.url === "/v23.0/000000000000000/events" &&
+      ev.event_name === "Lead" &&
+      ev.event_id === lead.event_id &&
+      ev.action_source === "website" &&
+      ev.event_source_url === lead.event_source_url &&
+      sentBody.test_event_code === "TEST_SMOKE" &&
+      ev.user_data?.em?.[0] === sha("smoke.capi@example.com") &&
+      ev.user_data?.ph?.[0] === sha("12815550100") &&
+      ev.user_data?.fbp === "fb.1.1.2" &&
+      ev.user_data?.fbc === "fb.1.1.3",
+    call?.body,
+  );
+  check(
+    "CAPI: sem e-mail ou telefone em claro",
+    !!call && !/smoke\.capi@example/i.test(call.body) && !call.body.includes("5550100"),
+  );
+
+  // CAPI falhando (400): lead continua 200 e o log não vaza o token.
+  metaMode = "FAIL";
+  res = await post(capi, validLead());
+  metaMode = "OK";
+  check("CAPI 400 → lead ainda 200", res.status === 200, `status ${res.status}`);
+  await new Promise((r) => setTimeout(r, 200));
+  check(
+    "CAPI 400 → log capi_failed sem token",
+    capi.logs().includes("capi_failed") && !capi.logs().includes(CAPI_TOKEN),
+  );
+} finally {
+  capi.stop();
+}
+
+// Pixel sem token: CAPI desativada.
+const noToken = await startApp(3104, {
+  LEAD_WEBHOOK_URL: fakeUrl,
+  META_PIXEL_ID: "000000000000000",
+  META_CAPI_BASE_URL: metaUrl,
+});
+try {
+  const before = metaHits.length;
+  const res = await post(noToken, validLead());
+  check(
+    "sem token → lead 200 e sem chamada à CAPI",
+    res.status === 200 && metaHits.length === before,
+    `status ${res.status}`,
+  );
+} finally {
+  noToken.stop();
+}
+
 // Sem LEAD_WEBHOOK_URL → 503.
 const bare = await startApp(3102, { LEAD_WEBHOOK_URL: "" });
 try {
@@ -212,6 +316,7 @@ try {
 }
 
 fake.close();
+fakeMeta.close();
 for (const s of fakeSockets) s.destroy();
 console.log(failures ? `\n${failures} falha(s)` : "\nSmoke OK");
 process.exit(failures ? 1 : 0);

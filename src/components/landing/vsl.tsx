@@ -6,6 +6,9 @@ import posterJpg from "@/assets/lp/vsl-poster.jpg";
 import { ResponsiveImage } from "@/components/landing/primitives";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { trackVideoPlay, trackVideoProgress, type VideoMilestone } from "@/lib/tracking";
+
+const MILESTONES: VideoMilestone[] = [25, 50, 75, 95];
 
 const VIDEO_LABEL = "Video: Leonardo Brandão explains how My Team Renovation works";
 
@@ -38,6 +41,13 @@ function VslVideo({
       playsInline
       preload="none"
       aria-label={VIDEO_LABEL}
+      onPlay={trackVideoPlay}
+      onTimeUpdate={(e) => {
+        const { currentTime, duration } = e.currentTarget;
+        if (!duration) return;
+        // Cada marco sai uma vez por carregamento (Set em tracking.ts), mesmo buscando para trás.
+        for (const m of MILESTONES) if ((currentTime / duration) * 100 >= m) trackVideoProgress(m);
+      }}
       className={cn(
         "block aspect-[9/16] bg-black object-contain focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold",
         className,
