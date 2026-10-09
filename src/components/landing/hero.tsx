@@ -5,6 +5,7 @@ import heroDesktopJpg from "@/assets/lp/hero-desktop.jpg";
 import heroMobileWebp from "@/assets/lp/hero-mobile.webp";
 import heroMobileJpg from "@/assets/lp/hero-mobile.jpg";
 import { SITE } from "@/components/landing/site-data";
+import { VslCard, VslMobileCard, VslSpacer, useVslUrl } from "@/components/landing/vsl";
 
 const HERO_ALT =
   "Primary bathroom remodel with freestanding tub, frameless glass shower and brushed-gold fixtures";
@@ -37,10 +38,11 @@ function TrustLine() {
 }
 
 export function HeroSection() {
+  const vslUrl = useVslUrl();
   return (
     <section
       id="top"
-      className="relative flex min-h-[100svh] items-center overflow-hidden pt-20 lg:pt-28"
+      className="relative flex min-h-[100svh] items-center overflow-hidden pt-20 lg:pt-28 lg:[--vsl-h:calc(100svh-10.25rem)]"
     >
       <div className="absolute inset-0">
         <picture>
@@ -102,6 +104,8 @@ export function HeroSection() {
 
             <TrustLine />
 
+            {vslUrl && <VslMobileCard src={vslUrl} />}
+
             <div className="fade-up mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 text-xs uppercase tracking-[0.24em] text-muted-foreground md:mt-12">
               <span className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-gold" /> 1-Year Warranty
@@ -114,10 +118,10 @@ export function HeroSection() {
               </span>
             </div>
           </div>
-          {/* Coluna direita reservada ao cartão do VSL (T19). */}
-          <div className="hidden lg:block" />
+          {vslUrl && <VslSpacer />}
         </div>
       </div>
+      {vslUrl && <VslCard src={vslUrl} />}
     </section>
   );
 }
