@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { z } from "zod";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import {
   Accordion,
@@ -18,7 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Section } from "./primitives";
+import { SERVICE_OPTIONS, leadSchema } from "@/lib/lead-schema";
+import { Section, Heading, GoldCTA } from "./primitives";
+import { SITE } from "./site-data";
 
 const FAQS = [
   {
@@ -43,9 +44,30 @@ const FAQS = [
   },
 ];
 
+// RF-26/RF-38: só entram com dado confirmado em SITE (F-DADOS).
+const CONDITIONAL_FAQS = [
+  ...(SITE.serviceArea?.length
+    ? [
+        {
+          q: "Do you serve my area?",
+          a: `Yes, if you are in ${SITE.serviceArea.join(", ")}. My Team Renovation serves these areas.`,
+        },
+      ]
+    : []),
+  ...(SITE.licensedInsured
+    ? [
+        {
+          q: "Are you licensed and insured?",
+          a: "Yes. My Team Renovation is licensed and insured.",
+        },
+      ]
+    : []),
+];
+
 export function FaqSection() {
   return (
     <Section id="faq">
+      {SITE.copy.h2.faq && <Heading className="mb-12 text-center">{SITE.copy.h2.faq}</Heading>}
       <div className="grid gap-16 lg:grid-cols-3">
         <div className="lg:col-span-1">
           <p className="text-muted-foreground">
@@ -54,7 +76,7 @@ export function FaqSection() {
         </div>
         <div className="lg:col-span-2">
           <Accordion type="single" collapsible className="w-full">
-            {FAQS.map((faq, i) => (
+            {[...FAQS, ...CONDITIONAL_FAQS].map((faq, i) => (
               <AccordionItem key={i} value={`item-${i}`} className="border-b border-border">
                 <AccordionTrigger className="py-6 text-left font-display text-lg text-foreground hover:no-underline hover:text-gold data-[state=open]:text-gold">
                   {faq.q}
@@ -71,39 +93,44 @@ export function FaqSection() {
   );
 }
 
-const SERVICE_OPTIONS = [
-  "Bathroom Remodeling",
-  "Flooring Installation",
-  "Kitchen Remodeling",
-  "Custom Carpentry & Finish Woodwork",
-  "General Repairs & Interior Painting",
-];
+const FIELD_CLASS =
+  "h-12 rounded-lg border-white/10 bg-[#152238] text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-gold";
 
-const formSchema = z.object({
-  name: z.string().trim().min(2, "Please enter your full name").max(100),
-  email: z.string().trim().email("Please enter a valid email").max(255),
-  phone: z.string().trim().min(7, "Please enter a valid phone number").max(30),
-  service: z.string().min(1, "Please select a remodeling service"),
-});
+function FieldError({ id, message }: { id: string; message?: string }) {
+  return message ? (
+    <p id={`${id}-error`} role="alert" className="text-sm text-red-300">
+      {message}
+    </p>
+  ) : null;
+}
 
 export function ContactFormSection() {
   const [service, setService] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const parsed = formSchema.safeParse({
+    const parsed = leadSchema.safeParse({
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       phone: String(data.get("phone") ?? ""),
       service,
+      zip: String(data.get("zip") ?? ""),
+      company: String(data.get("company") ?? ""),
+      event_id: crypto.randomUUID(),
+      event_source_url: window.location.href,
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Please check the form.");
+      const next: Record<string, string> = {};
+      for (const issue of parsed.error.issues) next[String(issue.path[0])] ??= issue.message;
+      setErrors(next);
+      document.getElementById(Object.keys(next)[0])?.focus();
       return;
     }
+    setErrors({});
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 800));
     setSubmitting(false);
@@ -115,6 +142,7 @@ export function ContactFormSection() {
     <Section id="contact" className="bg-obsidian">
       <div className="mx-auto max-w-xl">
         <div className="text-center">
+          {SITE.copy.h2.contact && <Heading className="mb-6">{SITE.copy.h2.contact}</Heading>}
           <p className="text-muted-foreground">
             Fill out the brief form below and Leonardo will reach out directly to discuss your
             project.
@@ -133,6 +161,7 @@ export function ContactFormSection() {
         ) : (
           <form
             onSubmit={onSubmit}
+            noValidate
             className="mt-14 rounded-2xl border border-white/10 bg-[#0f1a2b] p-8 shadow-2xl md:p-10"
           >
             <div className="space-y-5">
@@ -146,16 +175,22 @@ export function ContactFormSection() {
                   required
                   autoComplete="name"
                   placeholder="Your full name"
-                  className="h-12 rounded-lg border-white/10 bg-[#152238] text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-gold"
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? "name-error" : undefined}
+                  className={FIELD_CLASS}
                 />
+                <FieldError id="name" message={errors.name} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-sm font-medium text-white">
-                  WhatsApp
+                  {SITE.copy.phoneLabel ?? "WhatsApp"}
                 </Label>
                 <div className="flex gap-2">
-                  <div className="flex h-12 w-16 items-center justify-center rounded-lg border border-white/10 bg-[#152238] text-sm text-foreground">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-12 w-16 items-center justify-center rounded-lg border border-white/10 bg-[#152238] text-sm text-foreground"
+                  >
                     +1
                   </div>
                   <Input
@@ -165,9 +200,12 @@ export function ContactFormSection() {
                     required
                     autoComplete="tel"
                     placeholder="(000) 000-0000"
-                    className="h-12 flex-1 rounded-lg border-white/10 bg-[#152238] text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-gold"
+                    aria-invalid={!!errors.phone}
+                    aria-describedby={errors.phone ? "phone-error" : undefined}
+                    className={`${FIELD_CLASS} flex-1`}
                   />
                 </div>
+                <FieldError id="phone" message={errors.phone} />
               </div>
 
               <div className="space-y-2">
@@ -181,18 +219,44 @@ export function ContactFormSection() {
                   required
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="h-12 rounded-lg border-white/10 bg-[#152238] text-foreground placeholder:text-muted-foreground/60 focus-visible:ring-gold"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  className={FIELD_CLASS}
                 />
+                <FieldError id="email" message={errors.email} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="zip" className="text-sm font-medium text-white">
+                  ZIP code
+                </Label>
+                <Input
+                  id="zip"
+                  name="zip"
+                  required
+                  inputMode="numeric"
+                  pattern="\d{5}"
+                  maxLength={5}
+                  autoComplete="postal-code"
+                  placeholder="77494"
+                  aria-invalid={!!errors.zip}
+                  aria-describedby={errors.zip ? "zip-error" : undefined}
+                  className={FIELD_CLASS}
+                />
+                <FieldError id="zip" message={errors.zip} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="service" className="text-sm font-medium text-white">
                   Remodeling Service Needed
                 </Label>
-                <Select value={service} onValueChange={setService}>
+                <Select name="service" required value={service} onValueChange={setService}>
                   <SelectTrigger
                     id="service"
-                    className="h-12 rounded-lg border-white/10 bg-[#152238] text-foreground focus:ring-gold data-[placeholder]:text-muted-foreground/60"
+                    aria-required="true"
+                    aria-invalid={!!errors.service}
+                    aria-describedby={errors.service ? "service-error" : undefined}
+                    className="h-12 rounded-lg border-white/10 bg-[#152238] text-base text-foreground focus:ring-gold data-[placeholder]:text-muted-foreground"
                   >
                     <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
@@ -208,16 +272,30 @@ export function ContactFormSection() {
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError id="service" message={errors.service} />
+              </div>
+
+              {/* Honeypot (RF-43): fora da tela e da árvore de acessibilidade. */}
+              <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+                <input type="text" name="company" tabIndex={-1} autoComplete="off" />
               </div>
             </div>
+
+            {SITE.copy.consentText && (
+              <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+                {SITE.copy.consentText}
+              </p>
+            )}
 
             <Button
               type="submit"
               disabled={submitting}
-              className="mt-10 h-14 w-full rounded-lg bg-gold-gradient text-sm uppercase tracking-[0.2em] text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-95"
+              className="mt-10 h-auto min-h-14 w-full whitespace-normal rounded-lg bg-gold-gradient px-4 py-4 text-center text-sm uppercase tracking-[0.12em] text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold md:tracking-[0.2em]"
             >
-              {submitting ? "Sending…" : "Connect Directly with My Team Renovation"}
-              <ArrowRight className="ml-3 h-4 w-4" />
+              {submitting
+                ? "Sending…"
+                : (SITE.copy.submitLabel ?? "Connect Directly with My Team Renovation")}
+              <ArrowRight className="ml-3 h-4 w-4 shrink-0" />
             </Button>
           </form>
         )}
@@ -230,17 +308,12 @@ export function FinalCtaSection() {
   return (
     <Section className="border-y border-border">
       <div className="mx-auto max-w-4xl text-center">
+        {SITE.copy.h2.finalCta && <Heading className="mb-6">{SITE.copy.h2.finalCta}</Heading>}
         <p className="mt-6 text-base leading-relaxed text-muted-foreground md:text-lg">
           My Team Renovation delivers master-level craftsmanship, efficient timelines, and the
           personal respect your home deserves.
         </p>
-        <a
-          href="#contact"
-          className="mt-10 inline-flex h-14 items-center justify-center bg-gold-gradient px-10 text-sm uppercase tracking-[0.2em] text-primary-foreground shadow-[var(--shadow-gold)] transition-opacity hover:opacity-95"
-        >
-          Contact Leonardo Directly
-          <ArrowRight className="ml-3 h-4 w-4" />
-        </a>
+        <GoldCTA>Contact Leonardo Directly</GoldCTA>
       </div>
     </Section>
   );

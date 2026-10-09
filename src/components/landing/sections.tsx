@@ -1,5 +1,4 @@
 import {
-  Play,
   Bath,
   ShowerHead,
   Layers,
@@ -11,15 +10,18 @@ import {
   ShieldCheck,
   Check,
   X,
-  ArrowRight,
 } from "lucide-react";
-import { Section, GoldRule, GoldCTA } from "./primitives";
-import kitchenImage from "@/assets/kitchen-luxury.jpg";
-import bathMarble from "@/assets/portfolio-bath-marble.jpg";
-import bathSubway from "@/assets/portfolio-bath-subway.jpg";
+import { Section, GoldRule, GoldCTA, Heading, ResponsiveImage } from "./primitives";
+import { SITE } from "./site-data";
 import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg";
-import stairs from "@/assets/portfolio-stairs.jpg";
-import floorWood from "@/assets/portfolio-floor-wood.jpg";
+import promessaWebp from "@/assets/lp/promessa.webp";
+import promessaJpg from "@/assets/lp/promessa.jpg";
+import madeForLeftWebp from "@/assets/lp/made-for-left.webp";
+import madeForLeftJpg from "@/assets/lp/made-for-left.jpg";
+import madeForRightWebp from "@/assets/lp/made-for-right.webp";
+import madeForRightJpg from "@/assets/lp/made-for-right.jpg";
+import wideBannerWebp from "@/assets/lp/wide-banner.webp";
+import wideBannerJpg from "@/assets/lp/wide-banner.jpg";
 
 const WHY_BULLETS = [
   {
@@ -48,52 +50,21 @@ const WHY_BULLETS = [
 export function WhyChooseSection() {
   return (
     <Section id="why" className="bg-obsidian">
-      <div className="mt-16 grid gap-12 lg:grid-cols-5 lg:gap-16">
-        <div className="lg:col-span-3">
-          <div className="group relative aspect-video overflow-hidden bg-card ring-1 ring-border">
-            <img
-              src={kitchenImage}
-              alt="Walkthrough of a premium primary bathroom remodel"
-              className="h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-105"
-              loading="lazy"
-              width={1600}
-              height={900}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent" />
-            <button
-              type="button"
-              className="absolute inset-0 flex items-center justify-center"
-              aria-label="Play walkthrough video"
-            >
-              <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gold-gradient text-primary-foreground shadow-[var(--shadow-gold)] transition-transform group-hover:scale-110">
-                <Play className="ml-1 h-8 w-8 fill-current" />
+      <div className="mt-16">
+        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground">
+          A streamlined, efficient construction process designed to modernize your space, maximize
+          property value, and deliver ultimate comfort for your family.
+        </p>
+        <ul className="mt-8 grid gap-4 md:grid-cols-2 md:gap-x-12">
+          {WHY_BULLETS.map(({ icon: Icon, text }) => (
+            <li key={text} className="flex items-start gap-4">
+              <span className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center border border-gold/30 bg-gold/5 text-gold">
+                <Icon className="h-4 w-4" />
               </span>
-            </button>
-            <div className="absolute bottom-6 left-6 right-6">
-              <p className="text-xs uppercase tracking-[0.24em] text-gold">Leonardo Brandão</p>
-              <p className="mt-2 font-display text-xl text-foreground md:text-2xl">
-                Primary Bathroom Remodel — Delivered in 5 Days with Owner-Led Management
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-2">
-          <p className="text-base leading-relaxed text-muted-foreground">
-            A streamlined, efficient construction process designed to modernize your space, maximize
-            property value, and deliver ultimate comfort for your family.
-          </p>
-          <ul className="mt-8 space-y-4">
-            {WHY_BULLETS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-4">
-                <span className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center border border-gold/30 bg-gold/5 text-gold">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="text-sm leading-relaxed text-foreground/90">{text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+              <span className="text-sm leading-relaxed text-foreground/90">{text}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="mt-24 mx-auto max-w-4xl text-center">
@@ -164,10 +135,12 @@ export function ValuePropositionSection() {
     <Section id="value" className="bg-obsidian">
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div className="relative aspect-[4/5] overflow-hidden ring-1 ring-border">
-          <img
-            src={bathMarble}
-            alt="Marble bathroom with round mirror"
-            loading="lazy"
+          <ResponsiveImage
+            webp={promessaWebp}
+            fallback={promessaJpg}
+            alt="Walk-in wet room with freestanding tub and brushed-gold fixtures"
+            width={1200}
+            height={1500}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-obsidian/60 via-transparent to-transparent" />
@@ -221,6 +194,7 @@ const SERVICES = [
 export function ServicesSection() {
   return (
     <Section id="services">
+      {SITE.copy.h2.services && <Heading className="text-center">{SITE.copy.h2.services}</Heading>}
       <div className="mt-14 grid gap-6 md:grid-cols-2">
         {SERVICES.map(({ icon: Icon, title, text }) => (
           <article
@@ -260,10 +234,12 @@ export function IdealClientSection() {
       <div className="grid gap-10 md:grid-cols-2 md:items-stretch">
         <div className="flex flex-col gap-6">
           <div className="relative aspect-[4/3] overflow-hidden ring-1 ring-border">
-            <img
-              src={bathSubway}
-              alt="Bathroom with subway tile"
-              loading="lazy"
+            <ResponsiveImage
+              webp={madeForLeftWebp}
+              fallback={madeForLeftJpg}
+              alt="Curbless shower with linear drain and mosaic accent wall"
+              width={1200}
+              height={900}
               className="h-full w-full object-cover"
             />
           </div>
@@ -281,10 +257,12 @@ export function IdealClientSection() {
         </div>
         <div className="flex flex-col gap-6">
           <div className="relative aspect-[4/3] overflow-hidden ring-1 ring-border">
-            <img
-              src={floorWood}
-              alt="Wood flooring detail"
-              loading="lazy"
+            <ResponsiveImage
+              webp={madeForRightWebp}
+              fallback={madeForRightJpg}
+              alt="Double vanity with quartz top and custom wood cabinetry"
+              width={1200}
+              height={900}
               className="h-full w-full object-cover"
             />
           </div>
@@ -406,6 +384,7 @@ export function PrecisionSection() {
             src={kitchenDark}
             alt="Custom dark cabinet kitchen"
             loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-obsidian/70 via-transparent to-transparent" />
@@ -457,6 +436,7 @@ const STEPS = [
 export function ProcessSection() {
   return (
     <Section id="process">
+      {SITE.copy.h2.process && <Heading className="text-center">{SITE.copy.h2.process}</Heading>}
       <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         {STEPS.map((step) => (
           <article
@@ -510,20 +490,55 @@ const COMPARISON = [
 export function ComparisonSection() {
   return (
     <Section id="compare" className="bg-obsidian">
-      <div className="mt-14 overflow-x-auto">
+      {SITE.copy.h2.compare && <Heading className="text-center">{SITE.copy.h2.compare}</Heading>}
+      <div className="mt-14 space-y-4 md:hidden">
+        {COMPARISON.map((row) => (
+          <article key={row.feature} className="border border-border bg-card/40 p-5">
+            <p className="font-display text-lg text-foreground">{row.feature}</p>
+            <dl className="mt-4 space-y-4">
+              <div>
+                <dt className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Handyman
+                </dt>
+                <dd className="mt-1 text-sm text-muted-foreground">{row.handy}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Large Contractor Companies
+                </dt>
+                <dd className="mt-1 text-sm text-muted-foreground">{row.big}</dd>
+              </div>
+              <div className="border-l border-gold/40 bg-gold/[0.04] p-3">
+                <dt className="text-xs uppercase tracking-[0.2em] text-gold">My Team Renovation</dt>
+                <dd className="mt-1 text-sm text-foreground">{row.mtr}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+      <div className="mt-14 hidden overflow-x-auto md:block">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
             <tr className="border-b border-border">
-              <th className="py-5 pr-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <th
+                scope="col"
+                className="py-5 pr-4 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Feature
               </th>
-              <th className="py-5 px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <th
+                scope="col"
+                className="py-5 px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Handyman
               </th>
-              <th className="py-5 px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <th
+                scope="col"
+                className="py-5 px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground"
+              >
                 Large Contractor Companies
               </th>
-              <th className="py-5 pl-4 text-xs uppercase tracking-[0.2em] text-gold">
+              <th scope="col" className="py-5 pl-4 text-xs uppercase tracking-[0.2em] text-gold">
                 My Team Renovation
               </th>
             </tr>
@@ -531,7 +546,12 @@ export function ComparisonSection() {
           <tbody>
             {COMPARISON.map((row) => (
               <tr key={row.feature} className="border-b border-border/60 align-top">
-                <td className="py-6 pr-4 font-display text-lg text-foreground">{row.feature}</td>
+                <th
+                  scope="row"
+                  className="py-6 pr-4 font-display text-lg font-normal text-foreground"
+                >
+                  {row.feature}
+                </th>
                 <td className="py-6 px-4 text-sm text-muted-foreground">{row.handy}</td>
                 <td className="py-6 px-4 text-sm text-muted-foreground">{row.big}</td>
                 <td className="py-6 pl-4 text-sm text-foreground bg-gold/[0.04] border-l border-gold/40">
@@ -593,10 +613,12 @@ export function PathwaysAndEmotionSection() {
   return (
     <Section id="value-add">
       <div className="relative mb-16 aspect-[16/6] overflow-hidden ring-1 ring-border">
-        <img
-          src={stairs}
-          alt="Custom staircase and interior finish"
-          loading="lazy"
+        <ResponsiveImage
+          webp={wideBannerWebp}
+          fallback={wideBannerJpg}
+          alt="Open-concept kitchen and living area with waterfall island"
+          width={1179}
+          height={442}
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/20 to-transparent" />
@@ -646,13 +668,7 @@ export function EstimateCallSection() {
             Schedule an initial site consultation to unlock the potential of your current space and
             establish an efficient, guaranteed timeline for construction.
           </p>
-          <a
-            href="#contact"
-            className="mt-10 inline-flex h-14 items-center justify-center bg-gold-gradient px-10 text-sm uppercase tracking-[0.2em] text-primary-foreground shadow-[var(--shadow-gold)] transition-opacity hover:opacity-95"
-          >
-            Book On-Site Consultation with Leonardo
-            <ArrowRight className="ml-3 h-4 w-4" />
-          </a>
+          <GoldCTA>Book On-Site Consultation with Leonardo</GoldCTA>
         </div>
       </div>
     </Section>

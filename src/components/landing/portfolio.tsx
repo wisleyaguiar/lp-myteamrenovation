@@ -1,44 +1,82 @@
-import { Section, Eyebrow, Heading, GoldRule } from "./primitives";
-import kitchenHero from "@/assets/portfolio-kitchen-hero.jpg";
-import kitchenDark from "@/assets/portfolio-kitchen-dark.jpg";
-import bathSubway from "@/assets/portfolio-bath-subway.jpg";
-import bathMaster from "@/assets/portfolio-bath-master.jpg";
-import bathMarble from "@/assets/portfolio-bath-marble.jpg";
-import stairs from "@/assets/portfolio-stairs.jpg";
-import floorGray from "@/assets/portfolio-floor-gray.jpg";
-import floorWood from "@/assets/portfolio-floor-wood.jpg";
+import { Section, Eyebrow, Heading, GoldRule, ResponsiveImage } from "./primitives";
+import { SITE } from "./site-data";
+
+// Galeria = posições 04–13 do Anexo A (alts idênticos ao anexo). 12/13 sem rótulo até aprovação (NC-04).
+const GALLERY_FILES = import.meta.glob("../../assets/lp/gallery-*.{webp,jpg}", {
+  eager: true,
+  import: "default",
+  query: "?url",
+}) as Record<string, string>;
+const asset = (n: string, ext: "webp" | "jpg") =>
+  GALLERY_FILES[`../../assets/lp/gallery-${n}.${ext}`];
 
 const PROJECTS = [
   {
-    src: kitchenHero,
-    alt: "Modern white kitchen with blue shiplap island",
-    label: "Modern Kitchen",
+    n: "04",
+    alt: "Kitchen remodel with quartz island, gas cooktop and pendant lighting",
+    label: "KITCHEN REMODEL",
+    w: 720,
+    h: 1200,
     tall: true,
   },
   {
-    src: bathMarble,
-    alt: "Master bathroom with marble walls and round mirror",
-    label: "Marble Bathroom",
+    n: "05",
+    alt: "Marble-look walk-in shower with frameless glass and matte black fixtures",
+    label: "MARBLE SHOWER",
+    w: 800,
+    h: 800,
   },
   {
-    src: kitchenDark,
-    alt: "Dark cabinet kitchen with quartz waterfall island",
+    n: "06",
+    alt: "Custom kitchen with waterfall quartz island and white shaker cabinets",
     label: "Custom Kitchen",
+    w: 770,
+    h: 770,
   },
   {
-    src: bathMaster,
-    alt: "Primary bathroom with freestanding tub",
+    n: "07",
+    alt: "Primary bathroom double vanity with arched brass mirrors",
     label: "Primary Bathroom",
+    w: 720,
+    h: 1200,
     tall: true,
   },
   {
-    src: bathSubway,
-    alt: "Subway tile walk-in shower with brass fixtures",
+    n: "08",
+    alt: "Subway-tile walk-in shower with frameless glass and brass hardware",
     label: "Walk-In Shower",
+    w: 800,
+    h: 800,
   },
-  { src: stairs, alt: "Custom hardwood staircase treads", label: "Custom Carpentry" },
-  { src: floorGray, alt: "Gray LVP flooring installation", label: "Luxury Flooring" },
-  { src: floorWood, alt: "Warm oak wood flooring installation", label: "Hardwood Floors" },
+  { n: "09", alt: "Custom built-in shelving wall", label: "Custom Carpentry", w: 800, h: 800 },
+  {
+    n: "10",
+    alt: "Wide-plank light oak flooring in a primary bedroom",
+    label: "Luxury Flooring",
+    w: 800,
+    h: 800,
+  },
+  {
+    n: "11",
+    alt: "Hardwood staircase with solid oak treads",
+    label: "HARDWOOD STAIRS",
+    w: 800,
+    h: 800,
+  },
+  {
+    n: "12",
+    alt: "Freestanding soaking tub next to a curbless walk-in shower",
+    label: SITE.copy.galleryLabel12,
+    w: 800,
+    h: 800,
+  },
+  {
+    n: "13",
+    alt: "Walk-in shower with built-in bench and pebble floor",
+    label: SITE.copy.galleryLabel13,
+    w: 800,
+    h: 800,
+  },
 ];
 
 export function PortfolioSection() {
@@ -54,22 +92,26 @@ export function PortfolioSection() {
         </p>
       </div>
 
-      <div className="mt-16 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <div className="mt-16 grid grid-flow-dense grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {PROJECTS.map((p) => (
           <figure
-            key={p.src}
-            className={`group relative overflow-hidden bg-card ring-1 ring-border ${p.tall ? "row-span-2 aspect-[3/4] md:aspect-[3/5]" : "aspect-square"}`}
+            key={p.n}
+            className={`group relative overflow-hidden bg-card ring-1 ring-border ${p.tall ? "row-span-2" : "aspect-square"}`}
           >
-            <img
-              src={p.src}
+            <ResponsiveImage
+              webp={asset(p.n, "webp")}
+              fallback={asset(p.n, "jpg")}
               alt={p.alt}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              width={p.w}
+              height={p.h}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent opacity-90" />
-            <figcaption className="absolute bottom-0 left-0 right-0 p-4 text-xs uppercase tracking-[0.24em] text-gold">
-              {p.label}
-            </figcaption>
+            {p.label && (
+              <figcaption className="absolute bottom-0 left-0 right-0 p-4 text-xs uppercase tracking-[0.24em] text-gold">
+                {p.label}
+              </figcaption>
+            )}
           </figure>
         ))}
       </div>
@@ -134,6 +176,18 @@ export function TestimonialsSection() {
           </article>
         ))}
       </div>
+      {SITE.google?.profileUrl && (
+        <p className="mt-10 text-center">
+          <a
+            href={SITE.google.profileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm uppercase tracking-[0.2em] text-gold underline-offset-4 hover:underline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+          >
+            See all reviews on Google
+          </a>
+        </p>
+      )}
     </Section>
   );
 }
