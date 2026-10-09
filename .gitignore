@@ -35,3 +35,4 @@ dist-ssr
 .spec
 *.mp4
 .playwright-mcp
+.env
