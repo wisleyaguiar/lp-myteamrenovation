@@ -1,8 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import logoAsset from "@/assets/mtr-logo.png";
+import logoWebp from "@/assets/lp/logo.webp";
+import logoPng from "@/assets/lp/logo.png";
 import { Button } from "@/components/ui/button";
+import { ResponsiveImage } from "@/components/landing/primitives";
+import { SITE } from "@/components/landing/site-data";
+
+const CTA_LABEL = SITE.copy.headerCtaLabel ?? SITE.copy.ctaLabel ?? "Free Estimate";
+const CTA_CLASS =
+  "h-auto min-h-11 whitespace-normal text-center focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
+
+// "+17135550100" -> "(713) 555-0100"; outros formatos aparecem como confirmados.
+function formatPhone(e164: string) {
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164);
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
+}
 
 const NAV = [
   { href: "#why", label: "Why Us" },
@@ -16,16 +29,17 @@ export function SiteHeader() {
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto flex h-28 max-w-7xl items-center justify-between px-6">
+      <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:h-28">
         <a href="#top" className="flex items-center gap-3">
-          <img
-            src={logoAsset}
+          <ResponsiveImage
+            webp={logoWebp}
+            fallback={logoPng}
             alt="My Team Renovation"
-            className="h-20 w-auto md:h-24"
-            width={160}
-            height={96}
+            className="h-14 w-auto lg:h-24"
+            width={600}
+            height={435}
+            loading="eager"
           />
-          <span className="sr-only">My Team Renovation</span>
         </a>
 
         <nav className="hidden items-center gap-10 md:flex">
@@ -40,13 +54,21 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-6 md:flex">
+          {SITE.phone && (
+            <a
+              href={`tel:${SITE.phone}`}
+              className="text-sm font-medium tracking-wide text-foreground hover:text-gold"
+            >
+              {formatPhone(SITE.phone)}
+            </a>
+          )}
           <Button
             asChild
             size="lg"
-            className="bg-gold-gradient text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-90 rounded-none tracking-wide"
+            className={`bg-gold-gradient text-primary-foreground shadow-[var(--shadow-gold)] hover:opacity-90 rounded-none tracking-wide ${CTA_CLASS}`}
           >
-            <a href="#contact">Free Estimate</a>
+            <a href="#contact">{CTA_LABEL}</a>
           </Button>
         </div>
 
@@ -72,9 +94,12 @@ export function SiteHeader() {
                 {item.label}
               </a>
             ))}
-            <Button asChild className="mt-2 bg-gold-gradient text-primary-foreground rounded-none">
+            <Button
+              asChild
+              className={`mt-2 bg-gold-gradient text-primary-foreground rounded-none ${CTA_CLASS}`}
+            >
               <a href="#contact" onClick={() => setOpen(false)}>
-                Free Estimate
+                {CTA_LABEL}
               </a>
             </Button>
           </div>
@@ -91,7 +116,14 @@ export function SiteFooter() {
       <div className="container mx-auto max-w-7xl px-6 py-16">
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
           <div>
-            <img src={logoAsset} alt="My Team Renovation" className="h-28 w-auto md:h-36" />
+            <ResponsiveImage
+              webp={logoWebp}
+              fallback={logoPng}
+              alt="My Team Renovation"
+              className="h-28 w-auto md:h-36"
+              width={600}
+              height={435}
+            />
             <p className="mt-4 max-w-sm text-sm text-muted-foreground">
               Premium Residential Construction, Remodeling &amp; Luxury Flooring.
             </p>
@@ -101,6 +133,14 @@ export function SiteFooter() {
             <a href="mailto:contact@myteamrenovation.com" className="hover:text-gold">
               contact@myteamrenovation.com
             </a>
+            {SITE.phone && (
+              <>
+                <br />
+                <a href={`tel:${SITE.phone}`} className="hover:text-gold">
+                  {formatPhone(SITE.phone)}
+                </a>
+              </>
+            )}
             <br />
             <a href="https://www.myteamrenovation.com" className="hover:text-gold">
               www.myteamrenovation.com

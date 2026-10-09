@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SITE_URL } from "@/components/landing/site-data";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader, SiteFooter } from "@/components/landing/chrome";
 import { HeroSection } from "@/components/landing/hero";
@@ -33,9 +34,9 @@ export const Route = createFileRoute("/")({
         content:
           "Luxury bathroom, kitchen, flooring, and custom carpentry remodels delivered on the fastest timelines in the market. Owner-led project management by Leonardo Brandão. 1-year warranty.",
       },
-      { property: "og:url", content: "/" },
+      { property: "og:url", content: `${SITE_URL}/` },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/` }],
   }),
   component: Index,
 });

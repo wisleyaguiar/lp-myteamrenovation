@@ -10,6 +10,8 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import ogImage from "@/assets/lp/og-image.jpg";
+import { SITE_URL } from "@/components/landing/site-data";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -72,6 +74,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+const OG_ALT = "My Team Renovation — premium home remodeling";
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -99,16 +103,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Luxury bathroom, kitchen, flooring, and custom carpentry remodels delivered on the fastest timelines in the market. Owner-led project management by Leonardo Brandão. 1-year warranty.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6f51a58e-3056-484c-b02e-a1b124856efb/id-preview-576f4a83--f5e16a1f-6fd7-4fa9-a85d-a69e8cf7ae18.lovable.app-1783715987209.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6f51a58e-3056-484c-b02e-a1b124856efb/id-preview-576f4a83--f5e16a1f-6fd7-4fa9-a85d-a69e8cf7ae18.lovable.app-1783715987209.png",
-      },
+      { property: "og:image", content: `${SITE_URL}${ogImage}` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: OG_ALT },
+      { property: "og:locale", content: "en_US" },
+      { name: "twitter:image", content: `${SITE_URL}${ogImage}` },
+      { name: "twitter:image:alt", content: OG_ALT },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

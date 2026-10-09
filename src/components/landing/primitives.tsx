@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SITE } from "@/components/landing/site-data";
 
 interface SectionProps {
   id?: string;
@@ -54,6 +55,44 @@ export function GoldRule({ className }: { className?: string }) {
   return <div className={cn("gold-rule w-full", className)} />;
 }
 
+interface ResponsiveImageProps {
+  webp: string;
+  fallback: string;
+  alt: string;
+  width: number;
+  height: number;
+  className?: string;
+  loading?: "lazy" | "eager";
+  sizes?: string;
+}
+
+export function ResponsiveImage({
+  webp,
+  fallback,
+  alt,
+  width,
+  height,
+  className,
+  loading = "lazy",
+  sizes,
+}: ResponsiveImageProps) {
+  return (
+    <picture>
+      <source type="image/webp" srcSet={webp} sizes={sizes} />
+      <img
+        src={fallback}
+        alt={alt}
+        width={width}
+        height={height}
+        loading={loading}
+        decoding="async"
+        sizes={sizes}
+        className={className}
+      />
+    </picture>
+  );
+}
+
 interface GoldCTAProps {
   href?: string;
   children: ReactNode;
@@ -65,10 +104,10 @@ export function GoldCTA({ href = "#contact", children, className }: GoldCTAProps
     <div className={cn("mt-12 flex justify-center", className)}>
       <a
         href={href}
-        className="group inline-flex h-14 items-center justify-center bg-gold-gradient px-10 text-sm uppercase tracking-[0.2em] text-primary-foreground shadow-[var(--shadow-gold)] transition-opacity hover:opacity-95"
+        className="group inline-flex h-auto min-h-14 items-center justify-center whitespace-normal bg-gold-gradient px-6 py-4 text-center text-sm uppercase tracking-[0.12em] text-primary-foreground shadow-[var(--shadow-gold)] transition-opacity hover:opacity-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold md:px-10 md:tracking-[0.2em]"
       >
-        {children}
-        <ArrowRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
+        {SITE.copy.ctaLabel ?? children}
+        <ArrowRight className="ml-3 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
       </a>
     </div>
   );
