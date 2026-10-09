@@ -73,9 +73,10 @@ export function SiteHeader() {
         </div>
 
         <button
-          className="md:hidden text-foreground"
+          className="md:hidden text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle navigation"
+          aria-expanded={open}
         >
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -130,19 +131,25 @@ export function SiteFooter() {
           </div>
           <div className="text-sm text-muted-foreground md:text-center">
             <p className="mb-1 uppercase tracking-[0.24em] text-gold text-xs">Contact</p>
-            <a href="mailto:contact@myteamrenovation.com" className="hover:text-gold">
+            <a
+              href="mailto:contact@myteamrenovation.com"
+              className="inline-block py-1.5 hover:text-gold"
+            >
               contact@myteamrenovation.com
             </a>
             {SITE.phone && (
               <>
                 <br />
-                <a href={`tel:${SITE.phone}`} className="hover:text-gold">
+                <a href={`tel:${SITE.phone}`} className="inline-block py-1.5 hover:text-gold">
                   {formatPhone(SITE.phone)}
                 </a>
               </>
             )}
             <br />
-            <a href="https://www.myteamrenovation.com" className="hover:text-gold">
+            <a
+              href="https://www.myteamrenovation.com"
+              className="inline-block py-1.5 hover:text-gold"
+            >
               www.myteamrenovation.com
             </a>
           </div>

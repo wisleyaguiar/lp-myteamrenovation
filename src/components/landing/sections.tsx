@@ -316,7 +316,7 @@ export function RisksSection() {
             className="flex flex-col gap-4 border-l border-border bg-card/40 p-6 transition-all hover:border-destructive md:flex-row md:items-center md:gap-8 md:p-8"
           >
             <div className="flex items-center gap-4 md:w-72">
-              <span className="font-display text-3xl text-destructive/70">
+              <span className="font-display text-3xl text-destructive">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <p className="font-display text-lg text-foreground">{risk.label}</p>
