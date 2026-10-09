@@ -36,3 +36,5 @@ dist-ssr
 *.mp4
 .playwright-mcp
 .env
+
+.mcp.json
