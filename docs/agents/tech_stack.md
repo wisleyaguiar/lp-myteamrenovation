@@ -9,50 +9,45 @@
 - **Language**: TypeScript ^5.8.3 (strict, ES2022, moduleResolution Bundler; `tsconfig.json`)
 - **Framework**: TanStack Start ^1.168.26 + TanStack Router ^1.170.16 + React ^19.2.0
 
-| Item | Value | Source |
-|---|---|---|
-| Runtime | Node.js 22 | `Dockerfile` `node:22-alpine`, `@types/node` ^22.16.5 |
-| Server | Nitro 3.0.260603-beta, preset `NITRO_PRESET`, default `node-server` | `vite.config.ts` |
-| Build | Vite ^8.0.16 via `@lovable.dev/vite-tanstack-config` 2.7.6 | `package.json`, `vite.config.ts` |
-| Styling | Tailwind CSS ^4.2.1 (`@tailwindcss/vite`), `tw-animate-css` ^1.3.4 | `package.json`, `src/styles.css` |
-| UI kit | shadcn/ui `new-york`, baseColor `slate`, icons `lucide` | `components.json` |
-| Data client | `@tanstack/react-query` ^5.101.1 (QueryClient wired, no queries) | `src/router.tsx` |
-| Validation | zod ^3.24.2 | `src/components/landing/interactive.tsx` |
-| Package manager | npm (`package-lock.json`, `npm ci` in Dockerfile); `bun.lock` + `bunfig.toml` also committed | repo root |
-| Lint/format | ESLint ^9.32.0 flat config + typescript-eslint, Prettier ^3.7.3 | `eslint.config.js`, `.prettierrc` |
-
-### Scripts
-
-| Script | Command |
-|---|---|
-| `dev` | `vite dev` |
-| `build` | `vite build` |
-| `build:dev` | `vite build --mode development` |
-| `start` | `node .output/server/index.mjs` |
-| `preview` | `vite preview` |
-| `lint` | `eslint .` |
-| `format` | `prettier --write .` |
-| `assets:download` | `node scripts/download-assets.mjs` |
+| Item            | Value                                                                                                                                                                                                                                                                                            | Source                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| Runtime         | Node.js 22                                                                                                                                                                                                                                                                                       | `Dockerfile` `node:22-alpine`, `@types/node` ^22.16.5 |
+| Server          | Nitro 3.0.260603-beta, preset from `NITRO_PRESET`, default `node-server`                                                                                                                                                                                                                         | `vite.config.ts`, `package.json`                      |
+| Build           | Vite ^8.0.16 via `@lovable.dev/vite-tanstack-config` 2.7.6                                                                                                                                                                                                                                       | `package.json`, `vite.config.ts`                      |
+| Styling         | Tailwind CSS ^4.2.1 (`@tailwindcss/vite`), `tw-animate-css` ^1.3.4                                                                                                                                                                                                                               | `package.json`, `src/styles.css`                      |
+| UI kit          | shadcn/ui `new-york`, baseColor `slate`, icons `lucide`                                                                                                                                                                                                                                          | `components.json`                                     |
+| Data client     | `@tanstack/react-query` ^5.101.1 (QueryClient wired, no queries)                                                                                                                                                                                                                                 | `src/router.tsx`                                      |
+| Validation      | zod ^3.24.2 (lead schema, Black Friday schema)                                                                                                                                                                                                                                                   | `src/lib/lead-schema.ts`, `src/lib/bf-lead.server.ts` |
+| Forms           | Contact form uses `FormData` + `leadSchema.safeParse`; `react-hook-form` ^7.71.2 is installed but only used by `src/components/ui/form.tsx`                                                                                                                                                      | `src/components/landing/interactive.tsx`              |
+| Package manager | npm (`package-lock.json`, `npm ci` in Dockerfile); `bun.lock` + `bunfig.toml` also committed                                                                                                                                                                                                     | repo root                                             |
+| Lint/format     | ESLint ^9.32.0 flat config + typescript-eslint, Prettier ^3.7.3                                                                                                                                                                                                                                  | `eslint.config.js`, `.prettierrc`                     |
+| Commands        | `dev` `vite dev`; `build` `vite build`; `build:dev` `vite build --mode development`; `start` `node .output/server/index.mjs`; `preview` `vite preview`; `lint` `eslint .`; `format` `prettier --write .`; `assets:download` `node scripts/download-assets.mjs`; `smoke` `node scripts/smoke.mjs` | `package.json` scripts                                |
 
 ### Tests
 
-| Concern | Tool | Version |
-|---|---|---|
-| Runner | not found | — |
-| Assertion lib | not found | — |
-| Mock lib | not found | — |
-| Coverage | not found | — |
+| Concern       | Tool      | Version |
+| ------------- | --------- | ------- |
+| Runner        | not found | —       |
+| Assertion lib | not found | —       |
+| Mock lib      | not found | —       |
+| Coverage      | not found | —       |
 
 - `package.json` has no `test` script, the repo has no `*.test.*` / `*.spec.*` files, and `.github/workflows/coolify-deploy.yml` runs no build, lint, or test step.
+- Smoke test: `scripts/smoke.mjs` is plain Node HTTP, no test framework. It runs `npm run build && npm run smoke [-- --tracking]`. It starts the built server with a fake n8n and a fake Meta Graph (`META_CAPI_BASE_URL`), then checks the lead endpoints, routes, and tracking output.
 
 ### External integrations
 
-| System | Client wiring |
-|---|---|
-| Coolify deploy API | `curl -f -sS -X POST` in `.github/workflows/coolify-deploy.yml`, secret `COOLIFY_API_TOKEN` |
-| Lovable error events | `window.__lovableEvents.captureException` in `src/lib/lovable-error-reporting.ts` |
-| Lovable preview assets | `node:https` `get` in `scripts/download-assets.mjs` |
-| Google Fonts | `<link rel="stylesheet">` in `src/routes/__root.tsx` |
+| System                        | Client wiring                                                                                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| n8n lead webhook              | `fetch` in `src/lib/lead.server.ts`, env `LEAD_WEBHOOK_URL`                                                                                                       |
+| n8n Black Friday webhook      | `fetch` in `src/lib/bf-lead.server.ts`, env `BF_LEAD_WEBHOOK_URL`                                                                                                 |
+| Meta Graph API `v23.0` (CAPI) | `fetch` in `src/lib/meta-capi.server.ts`; needs both env `META_PIXEL_ID` and `META_CAPI_ACCESS_TOKEN`, `META_CAPI_TEST_EVENT_CODE`, `META_CAPI_BASE_URL`          |
+| Meta Pixel (browser)          | `pixelSnippet()` in `src/lib/tracking.ts`, injected by `src/routes/__root.tsx` for `/`; `/blackfriday` uses the `config.js` ID in `public/blackfriday/js/main.js` |
+| Google Analytics 4 (browser)  | `gtagSnippet()` in `src/lib/tracking.ts`, `<script src>` in `src/routes/__root.tsx`, env `GA4_MEASUREMENT_ID`                                                     |
+| Coolify deploy API            | `curl -f -sS -X POST` in `.github/workflows/coolify-deploy.yml`, secret `COOLIFY_API_TOKEN`                                                                       |
+| Lovable error events          | `window.__lovableEvents.captureException` in `src/lib/lovable-error-reporting.ts`                                                                                 |
+| Lovable preview assets        | `node:https` `get` in `scripts/download-assets.mjs`                                                                                                               |
+| Google Fonts                  | `<link rel="stylesheet">` in `src/routes/__root.tsx`                                                                                                              |
 
 ## Related documents
 

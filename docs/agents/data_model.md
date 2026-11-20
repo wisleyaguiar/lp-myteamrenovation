@@ -6,16 +6,30 @@
 
 ### Not applicable in this repository
 
-The repo persists nothing. It has no migrations directory, no ORM models, no schema files (`*.sql`, `*.prisma`, drizzle), and no database driver or ORM in `package.json`. No storage API (`localStorage`, `sessionStorage`, `indexedDB`) is used in `src/components/landing/`. Contact form input lives only in React state and `FormData` inside `ContactFormSection` (`src/components/landing/interactive.tsx`), and the page drops it after the success toast. All page content is hardcoded `const` arrays in `src/components/landing/*.tsx`.
+The server persists nothing. No migrations directory, no ORM models, no schema files (`*.sql`, `*.prisma`, drizzle), and no database driver or ORM in `package.json`. Lead payloads leave through `fetch` to the n8n webhooks (`LEAD_WEBHOOK_URL`, `BF_LEAD_WEBHOOK_URL`) in `src/lib/lead.server.ts` and `src/lib/bf-lead.server.ts`. Storage happens in the CRM behind n8n, outside this repo. Page content is hardcoded `const` arrays in `src/components/landing/*.tsx`.
 
 ### Cache
 
-- `QueryClient` is created per `getRouter()` call with default options (`src/router.tsx`). It holds no queries.
+- `QueryClient` is created per `getRouter()` call with default options (`src/router.tsx`). It holds no queries (no `useQuery` in `src/`).
+- Root route loader data (`getPublicConfig()`) uses `staleTime: Infinity` (`src/routes/__root.tsx`).
 - `src/server.ts` memoizes the imported server entry in the module-level `serverEntryPromise`.
 - `src/lib/error-capture.ts` keeps one `lastCapturedError` in memory with `TTL_MS = 5_000` and clears it on `consumeLastCapturedError()`.
+- `src/lib/tracking.ts` keeps a module-level `sent` Set. Each browser event key fires once per page load.
+
+### Browser storage
+
+| Key / cookie                                                                                                                                                                                 | Written by                                                                                | Read by                                                                                      | Lifetime                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
+| `sessionStorage["mtr_lead_event_id"]` (`/`)                                                                                                                                                  | `ContactFormSection` on a 2xx from `/api/lead` (`src/components/landing/interactive.tsx`) | `src/routes/thank-you.tsx`, which removes the key on read                                    | tab session              |
+| `sessionStorage["mtr_attr"]` (`/blackfriday`) — one JSON blob: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `fbclid`, `gclid`, `landing_url`, `referrer`, `fbc_ts` | `captureUtms()` in `public/blackfriday/js/main.js`                                        | `attribution()` in the same file, copied into the form before submit                         | tab session              |
+| `sessionStorage["mtr_cta"]` (`/blackfriday`)                                                                                                                                                 | `public/blackfriday/js/main.js` (`store.set('mtr_cta', id)`)                              | same file, sent as `cta` in the lead payload (default `form`)                                | tab session              |
+| `sessionStorage` and `localStorage["mtr_lead_fired_<eid>"]` (`/blackfriday/thank-you/`)                                                                                                      | `public/blackfriday/js/main.js`, written to both stores after firing Lead                 | same file, sessionStorage first then localStorage; prevents a second Lead for the same `eid` | localStorage: persistent |
+| `_fbp`, `_fbc` cookies                                                                                                                                                                       | not written by repo code                                                                  | `readCookie()` in `interactive.tsx`; `cookie()` in `public/blackfriday/js/main.js`           | cookie                   |
+
+- Main LP (`/`) storage keys: only `mtr_lead_event_id`. `src/lib/tracking.ts` and the other landing components use no storage.
 
 ## Related documents
 
-- [`api_contracts.md`](api_contracts.md) — absence of API surface
-- [`domain_rules.md`](domain_rules.md) — hardcoded content and form rules
-- [`architecture.md`](architecture.md) — layer layout
+- [`api_contracts.md`](api_contracts.md) — endpoints that receive the lead payloads
+- [`domain_rules.md`](domain_rules.md) — hardcoded content and lead rules
+- [`architecture.md`](architecture.md) — layer layout and the lead intake flow

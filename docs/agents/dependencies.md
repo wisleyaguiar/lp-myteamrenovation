@@ -6,43 +6,40 @@
 
 ### External services
 
-| Service | Purpose |
-|---|---|
-| Coolify (`aguiardev.online`) | Deploys on push to `main` and on `workflow_dispatch`. The workflow authenticates with the `COOLIFY_API_TOKEN` Bearer secret (`.github/workflows/coolify-deploy.yml`) |
-| Google Fonts | Serves Playfair Display + Inter (`src/routes/__root.tsx`) |
-| Cloudflare R2 public bucket | Hosts the OG/Twitter share image URL (`src/routes/__root.tsx`) |
-| Lovable preview host | Source for asset binaries in `scripts/download-assets.mjs` |
-| Lovable event bridge | Receives `window.__lovableEvents.captureException` calls from the root error boundary |
+| Service                                          | Purpose                                                                                                                                                                                                           |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| n8n lead webhook (`LEAD_WEBHOOK_URL`)            | Receives `/api/lead` JSON (`src/lib/lead.server.ts`)                                                                                                                                                              |
+| n8n Black Friday webhook (`BF_LEAD_WEBHOOK_URL`) | Receives `/blackfriday/api/lead` JSON; workflow "LP Black Friday 2026" feeds Kommo (`src/lib/bf-lead.server.ts`)                                                                                                  |
+| Kommo CRM                                        | Lead storage and follow-up; reached only through n8n (`src/lib/bf-lead.server.ts` comment)                                                                                                                        |
+| Meta Graph API `v23.0`                           | Server `Lead` event via Conversions API; needs both `META_PIXEL_ID` and `META_CAPI_ACCESS_TOKEN` (off if either is empty); independent of the `/blackfriday` `config.js` Pixel ID (`src/lib/meta-capi.server.ts`) |
+| Meta Pixel                                       | Browser `fbevents.js`. `/`: loaded when `META_PIXEL_ID` is valid (`src/routes/__root.tsx`). `/blackfriday`: ID hardcoded in `public/blackfriday/js/config.js`, not from the env var; loads only outside localhost |
+| Google Analytics 4                               | Browser `gtag.js`, loaded when `GA4_MEASUREMENT_ID` is valid (`src/routes/__root.tsx`)                                                                                                                            |
+| Coolify (`aguiardev.online`)                     | Deploys on push to `main` and on `workflow_dispatch`. The workflow authenticates with the `COOLIFY_API_TOKEN` Bearer secret (`.github/workflows/coolify-deploy.yml`)                                              |
+| Google Fonts                                     | Serves Playfair Display + Inter (`src/routes/__root.tsx`)                                                                                                                                                         |
+| Lovable preview host                             | Source for asset binaries in `scripts/download-assets.mjs`                                                                                                                                                        |
+| Lovable event bridge                             | Receives `window.__lovableEvents.captureException` calls from the root error boundary                                                                                                                             |
 
 ### Internal libraries
 
-| Package | Role |
-|---|---|
+| Package                                   | Role                                                                                                                                   |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `@lovable.dev/vite-tanstack-config` 2.7.6 | Vendor build preset that bundles the tanstackStart, viteReact, tailwind, tsConfigPaths, nitro, and devtools plugins (`vite.config.ts`) |
-| `src/components/ui/*` | 46 local shadcn/ui primitives over 27 `@radix-ui/react-*` packages |
-| `src/components/landing/primitives.tsx` | `Section`, `Eyebrow`, `Heading`, `GoldRule`, `GoldCTA` |
-| `src/lib/utils.ts` | `cn()` = `twMerge(clsx(...))` |
-
-### Key runtime packages
-
-| Package | Version | Role |
-|---|---|---|
-| `@tanstack/react-start` | ^1.168.26 | SSR, server entry, `createMiddleware` |
-| `@tanstack/react-router` | ^1.170.16 | File-based routing |
-| `@tanstack/react-query` | ^5.101.1 | `QueryClient` in router context |
-| `react` / `react-dom` | ^19.2.0 | UI |
-| `zod` | ^3.24.2 | Contact form schema |
-| `sonner` | ^2.0.7 | Toasts (`Toaster` in `src/routes/index.tsx`) |
-| `lucide-react` | ^0.575.0 | Icons |
-| `tailwindcss` / `@tailwindcss/vite` | ^4.2.1 | Styling |
-| `class-variance-authority` / `clsx` / `tailwind-merge` | ^0.7.1 / ^2.1.1 / ^3.5.0 | Variant + class merging |
-| `nitro` | 3.0.260603-beta | Server build (preset `node-server`) |
+| `src/components/ui/*`                     | 46 local shadcn/ui primitives over 26 `@radix-ui/*` packages (`package.json`)                                                          |
+| `src/components/landing/primitives.tsx`   | `Section`, `Eyebrow`, `Heading`, `GoldRule`, `GoldCTA`                                                                                 |
+| `src/lib/utils.ts`                        | `cn()` = `twMerge(clsx(...))`                                                                                                          |
+| `src/lib/lead-schema.ts`                  | Shared zod `leadSchema` and `SERVICE_OPTIONS`, used by the form and `handleLead`                                                       |
+| `src/lib/tracking.ts`                     | Browser event helpers (`trackLead`, VSL events) and Pixel/GA4 snippet builders                                                         |
 
 ### Shared infrastructure
 
 - Docker image: multi-stage `node:22-alpine`, `NITRO_PRESET=node-server`, `NODE_ENV=production`, `HOST=0.0.0.0`, `PORT=3000`, `CMD node .output/server/index.mjs` (`Dockerfile`).
-- Observability: `console.error` on the server (`src/server.ts`, `src/start.ts`) plus Lovable error reporting in the client boundary. No APM or logging SDK is installed.
-- No queues, no caches, no databases.
+- Runtime env names (`.env.example`):
+  - Server-only: `LEAD_WEBHOOK_URL`, `BF_LEAD_WEBHOOK_URL`, `META_CAPI_ACCESS_TOKEN`, `META_CAPI_TEST_EVENT_CODE`.
+  - Public, read by the root loader (`src/lib/public-config.ts`): `META_PIXEL_ID`, `GA4_MEASUREMENT_ID`, `VSL_VIDEO_URL`.
+  - Read in code but missing from `.env.example`: `META_CAPI_BASE_URL` (`src/lib/meta-capi.server.ts`, default `https://graph.facebook.com`; the smoke test points it at a fake Meta).
+  - Read by `vite.config.ts`: `NITRO_PRESET` (set in `Dockerfile`).
+- Observability: `console.error` on the server (`src/server.ts`, `src/start.ts`, `src/lib/lead.server.ts`, `src/lib/bf-lead.server.ts`, `src/lib/meta-capi.server.ts`). Log lines carry event names (`lead_upstream_error`, `capi_failed`) and `event_id`, never URLs or lead data. Lovable error reporting in the client boundary. No APM or logging SDK is installed.
+- No queues, no external caches, no databases.
 
 ## Related documents
 

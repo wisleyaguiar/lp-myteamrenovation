@@ -4,22 +4,163 @@
 
 ## AS IS — Current state
 
-### Not applicable in this repository
+### HTTP endpoints
 
-The repo exposes no HTTP API. `src/routes/` holds only `__root.tsx` and `index.tsx`, the `/` HTML page. No route is under `src/routes/api/`, and no `createServerFn` or `server.handlers` appears anywhere in `src/`. The only `fetch` in `src/` is the SSR entry handler in `src/server.ts`. No `useQuery` call exists, even though a `QueryClient` sits in the router context (`src/router.tsx`). The contact form in `ContactFormSection` (`src/components/landing/interactive.tsx`) validates with zod, waits 800 ms, and shows a success toast, without sending any request. No queue, topic, or message broker client is in `package.json`.
+| Method | Path                    | Auth                                                      | Handler                                                                                   | Success              | Error statuses          |
+| ------ | ----------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------- | ----------------------- |
+| POST   | `/api/lead`             | none (no auth check in handler); honeypot field `company` | `handleLead` in `src/lib/lead.server.ts`, route `src/routes/api/lead.ts`                  | 200 `{ "ok": true }` | 400, 502, 503, 504      |
+| POST   | `/blackfriday/api/lead` | none (no auth check in handler); honeypot field `company` | `handleBfLead` in `src/lib/bf-lead.server.ts`, route `src/routes/blackfriday/api/lead.ts` | 200 `{ "ok": true }` | 400, 422, 502, 503, 504 |
 
-### HTML responses served
+- Each route defines only a `POST` handler (`server: { handlers: { POST: ... } }`).
+- Both handlers parse JSON with `request.json()`. Both return `cache-control: no-store`.
+- No OpenAPI or GraphQL schema in the repo.
 
-| Method | Path | Response |
-|---|---|---|
-| GET | `/` | SSR HTML landing page (`src/routes/index.tsx`) |
-| GET | unknown path | `NotFoundComponent` "404 Page not found" (`src/routes/__root.tsx`) |
-| GET | any, on SSR failure | 500 `text/html; charset=utf-8` from `renderErrorPage()` (`src/lib/error-page.ts`) |
+### POST /api/lead
+
+Request: JSON object validated by `leadSchema` (`src/lib/lead-schema.ts`, `.strict()`).
+
+| Field              | Type    | Rule                                                 |
+| ------------------ | ------- | ---------------------------------------------------- |
+| `name`             | string  | trimmed, 2–100 chars                                 |
+| `email`            | string  | trimmed, valid email, max 255                        |
+| `phone`            | string  | trimmed, 7–30 chars; normalized to E.164 server-side |
+| `service`          | string  | one of `SERVICE_OPTIONS` (enum)                      |
+| `zip`              | string  | exactly 5 digits                                     |
+| `event_id`         | string  | 8–100 chars; browser `crypto.randomUUID()`           |
+| `event_source_url` | string  | valid URL                                            |
+| `fbp`              | string  | optional, max 255                                    |
+| `fbc`              | string  | optional, max 255                                    |
+| `consent`          | boolean | optional                                             |
+| `company`          | string  | optional; honeypot, must stay empty                  |
+
+Unknown keys fail the schema (`.strict()`) and return `400` with `field: "body"`.
+
+Request example (fixture `validLead()` in `scripts/smoke.mjs`; `event_id` is generated per submit in the browser):
+
+```json
+{
+  "name": "Smoke Test",
+  "email": "smoke@example.com",
+  "phone": "(281) 555-0100",
+  "service": "Bathroom Remodeling",
+  "zip": "77494",
+  "event_id": "8f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "event_source_url": "https://myteamrenovation.com/"
+}
+```
+
+Forwarded to the `LEAD_WEBHOOK_URL` n8n webhook (built in `handleLead`):
+
+```json
+{
+  "full_name": "Smoke Test",
+  "phone": "+12815550100",
+  "email": "smoke@example.com",
+  "service": "Bathroom Remodeling",
+  "zip": "77494",
+  "submitted_at": "2026-11-20T15:04:05.123Z",
+  "event_id": "8f1c2d3e-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+}
+```
+
+| Case                      | Status | Body                                                                                                                                   | n8n called | Meta CAPI |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- | ---------- | --------- |
+| Body is not valid JSON    | 400    | `{"error":"validation_failed","field":"body","message":"Request body must be valid JSON"}`                                             | no         | no        |
+| Valid JSON, not an object | 400    | `{"error":"validation_failed","field":"body","message":"Request body must be a JSON object"}`                                          | no         | no        |
+| `company` non-empty       | 200    | `{"ok":true}`                                                                                                                          | no         | no        |
+| Schema fails              | 400    | `{"error":"validation_failed","field":"<key>","message":"<issue>"}` (`field` = first issue key if in the known field set, else `body`) | no         | no        |
+
+Check order: parse JSON → must be an object → honeypot `company` → `leadSchema`. An invalid body with `company` filled returns 200.
+| `LEAD_WEBHOOK_URL` unset | 503 | `{"error":"lead_destination_unavailable"}` | no | no |
+| n8n non-2xx | 502 | `{"error":"upstream_error"}` | yes | no |
+| n8n no response in 10 s | 504 | `{"error":"upstream_timeout"}` | yes | no |
+| Network error | 502 | `{"error":"upstream_error"}` | yes | no |
+| n8n 2xx | 200 | `{"ok":true}` | yes | yes, after 2xx |
+
+- CAPI failure logs `capi_failed` only. The response stays 200.
+
+### POST /blackfriday/api/lead
+
+Request: JSON object validated by `bfLeadSchema` (`src/lib/bf-lead.server.ts`). Not `.strict()`: unknown keys are dropped.
+
+| Field                                                                                                  | Rule                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `first_name`                                                                                           | trimmed, 1–60 chars                                                                                                   |
+| `phone`                                                                                                | normalized to E.164; must match `^\+1[2-9]\d{9}$`                                                                     |
+| `zip`                                                                                                  | exactly 5 digits                                                                                                      |
+| `email`                                                                                                | optional; trimmed, lowercased, max 120; valid email when non-empty                                                    |
+| `project_type`                                                                                         | enum: `Replace a tub with a walk-in shower`, `Remodel my master bathroom shower`, `Fully renovate my master bathroom` |
+| `event_id`                                                                                             | `^[\w-]{6,64}$`                                                                                                       |
+| `page_url`, `landing_url`, `referrer`                                                                  | optional, cut to 500 chars                                                                                            |
+| `fbp`, `fbc`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `fbclid`, `gclid` | optional, cut to 200 chars (`fbc` 400)                                                                                |
+
+Attribution fields are truncated, never rejected.
+
+Request example (fixture `validBfLead()` in `scripts/smoke.mjs`; `cta` is not in the schema and is dropped):
+
+```json
+{
+  "first_name": "Smoke",
+  "phone": "(281) 555-0100",
+  "zip": "77494",
+  "email": "",
+  "project_type": "Replace a tub with a walk-in shower",
+  "event_id": "5d0e7a1b-9c2f-4e8a-b6d3-1f4a7c9e2b80",
+  "page_url": "https://myteamrenovation.com/blackfriday/",
+  "utm_source": "facebook",
+  "company": "",
+  "cta": "form"
+}
+```
+
+Forwarded to the `BF_LEAD_WEBHOOK_URL` n8n webhook (→ Kommo): every parsed field except `fbp` and `fbc`, plus `submitted_at`.
+
+| Case                                     | Status | Body                                                                     | n8n called | Meta CAPI |
+| ---------------------------------------- | ------ | ------------------------------------------------------------------------ | ---------- | --------- |
+| Body is not valid JSON, or not an object | 400    | `{"ok":false,"error":"bad_json"}` (same body for both; no message field) | no         | no        |
+| `company` non-empty                      | 200    | `{"ok":true}`                                                            | no         | no        |
+| Schema fails                             | 422    | `{"ok":false,"error":"invalid","fields":["zip"]}` (all failing keys)     | no         | no        |
+
+Check order: parse JSON → must be an object → honeypot `company` → `bfLeadSchema`. An invalid body with `company` filled returns 200.
+| `BF_LEAD_WEBHOOK_URL` unset | 503 | `{"ok":false,"error":"lead_destination_unavailable"}` | no | no |
+| n8n non-2xx | 502 | `{"ok":false,"error":"crm_failed"}` | yes | no |
+| n8n no response in 15 s | 504 | `{"ok":false,"error":"upstream_timeout"}` | yes | no |
+| Network error | 502 | `{"ok":false,"error":"crm_failed"}` | yes | no |
+| n8n 2xx | 200 | `{"ok":true}` | yes | yes, after 2xx |
+
+### Server function: getPublicConfig
+
+- `createServerFn({ method: "GET" })` in `src/lib/public-config.ts`. No request input.
+- Called by the root route loader (`src/routes/__root.tsx`, `loader: () => getPublicConfig()`).
+- Invalid or empty env values return `null`.
+
+Response example (env from `npm run smoke -- --tracking` in `scripts/smoke.mjs`):
+
+```json
+{
+  "metaPixelId": "000000000000000",
+  "ga4MeasurementId": "G-SMOKETEST",
+  "vslVideoUrl": null
+}
+```
+
+### Page routes and static responses
+
+| Method | Path                      | Response                                                                                                                                |
+| ------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/`                       | SSR landing page (`src/routes/index.tsx`)                                                                                               |
+| GET    | `/thank-you`              | SSR page, `robots` `noindex` (`src/routes/thank-you.tsx`)                                                                               |
+| GET    | `/blackfriday/`           | static `public/blackfriday/index.html`; no TanStack route                                                                               |
+| GET    | `/blackfriday/thank-you/` | static `public/blackfriday/thank-you/index.html`; the Black Friday client redirects here with `?eid=` (`public/blackfriday/js/main.js`) |
+| GET    | `/blackfriday/privacy/`   | static `public/blackfriday/privacy/index.html`                                                                                          |
+| GET    | unknown path              | 404 `NotFoundComponent` (`src/routes/__root.tsx`)                                                                                       |
+| GET    | any, on SSR failure       | 500 `text/html; charset=utf-8` from `renderErrorPage()` (`src/lib/error-page.ts`)                                                       |
 
 - Static files: `/favicon.ico`, `/favicon.png`, `/apple-touch-icon.png` (`public/`).
+- No message queue or async endpoints (see `dependencies.md`).
 
 ## Related documents
 
-- [`domain_rules.md`](domain_rules.md) — client-only contact form validation rules
-- [`architecture.md`](architecture.md) — SSR entry and error flow
-- [`data_model.md`](data_model.md) — absence of persistence
+- [`domain_rules.md`](domain_rules.md) — lead validation rules, routing outcomes, and CRM/CAPI behavior behind these responses
+- [`architecture.md`](architecture.md) — server entry, route layout, and the SSR error flow
+- [`data_model.md`](data_model.md) — absence of persistence; leads leave the app through n8n

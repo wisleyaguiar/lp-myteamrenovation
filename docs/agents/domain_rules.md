@@ -6,66 +6,144 @@
 
 ### Overview
 
-- Brand: My Team Renovation, an owner-led, local, family-run home remodeling business. Leonardo Brandão is the owner (`src/routes/__root.tsx` meta).
-- Services offered: bathroom, flooring, kitchen, custom carpentry, general repairs and painting.
-- Commitments stated on the page: single bathroom in 5 days, daily cleanups, 1-year warranty, fixed price with itemized change orders.
-- The only interaction is a client-side contact form. Nothing is persisted or sent.
+- Brand: My Team Renovation, an owner-led, locally owned, family-operated home remodeling business. Leonardo Brandão is the owner (`src/routes/__root.tsx` meta; `README.md`).
+- Services offered: bathroom, flooring, kitchen, custom carpentry, general repairs and painting (`SERVICE_OPTIONS` in `src/lib/lead-schema.ts`).
+- Commitments stated on the page: single bathroom in 5 days, daily cleanups, 1-year warranty, fixed price with change orders (`src/components/landing/sections.tsx`, `src/components/landing/interactive.tsx`).
+- Lead intake: two forms. `/` uses `ContactFormSection` (`src/components/landing/interactive.tsx`). `/blackfriday` uses the static form in `public/blackfriday/js/main.js`. Both POST JSON to a server route that forwards to n8n. This repo stores no leads.
 
-### Contact form validation
+### Lead schema (`/` form)
 
-- Implemented by `formSchema` in `ContactFormSection` (`src/components/landing/interactive.tsx`):
+Source: `src/lib/lead-schema.ts`. Shared by the browser form and `handleLead`.
 
 ```ts
-const formSchema = z.object({
-  name: z.string().trim().min(2, "Please enter your full name").max(100),
-  email: z.string().trim().email("Please enter a valid email").max(255),
-  phone: z.string().trim().min(7, "Please enter a valid phone number").max(30),
-  service: z.string().min(1, "Please select a remodeling service"),
-});
+export const leadSchema = z
+  .object({
+    name: z.string().trim().min(2, "Please enter your full name").max(100),
+    email: z.string().trim().email("Please enter a valid email").max(255),
+    phone: z.string().trim().min(7, "Please enter a valid phone number").max(30),
+    service: z.enum(SERVICE_OPTIONS, {
+      errorMap: () => ({ message: "Please select a remodeling service" }),
+    }),
+    zip: z
+      .string()
+      .trim()
+      .regex(/^\d{5}$/, "Please enter a valid 5-digit ZIP code"),
+    event_id: z.string().min(8).max(100),
+    event_source_url: z.string().url(),
+    fbp: z.string().max(255).optional(),
+    fbc: z.string().max(255).optional(),
+    consent: z.boolean().optional(),
+    company: z.string().max(255).optional(),
+  })
+  .strict();
 ```
 
-- `name`, `email`, and `phone` come from `FormData`. `service` comes from the Radix `Select` state.
-- The phone field is labeled "WhatsApp" and shows a fixed `+1` prefix that is not part of the submitted value.
-- On failure: `toast.error(issues[0].message)` and the form stays visible.
-- On success: `submitting=true`, wait 800 ms (`setTimeout`), `toast.success("Thanks! Leonardo will reach out shortly.")`, and `done=true` replaces the form with the "Thank you." panel. Nothing is sent over the network.
+- Client: `leadSchema.safeParse` on submit. Field errors render inline. Focus moves to the first invalid field (`ContactFormSection`, `src/components/landing/interactive.tsx`).
+- Server: the same schema runs again in `handleLead` (`src/lib/lead.server.ts`).
+- Phone: entered as typed. The `+1` in the form is a visual prefix, not part of the value. Server normalizes to E.164 with `normalizePhoneE164` (`src/lib/lead.server.ts`). An 11-digit number that starts with `1` is not prefixed twice.
+- Phone input label: `SITE.copy.phoneLabel` = "Mobile phone" (`src/components/landing/site-data.ts`).
+- `consent` is sent only when `SITE.copy.consentText` is set. It is `null` today, so `consent` is not sent.
+
+### Form submit flow (`/`)
+
+1. Browser builds `event_id` with `crypto.randomUUID()`, `event_source_url` from `window.location.href`, and `fbp` / `fbc` from the `_fbp` / `_fbc` cookies (`interactive.tsx`).
+2. Client validation fails → inline errors, no request.
+3. `fetch("/api/lead")` POST with JSON body.
+4. 2xx → `sessionStorage` key `mtr_lead_event_id` = `event_id`, then `window.location.assign("/thank-you")`.
+5. Non-2xx or network error → `SUBMIT_ERROR` toast and inline alert. The form stays visible.
+
+### Lead forwarding (`POST /api/lead`)
+
+| Condition                      | Status | Body                                                       | n8n called | Meta CAPI |
+| ------------------------------ | ------ | ---------------------------------------------------------- | ---------- | --------- |
+| Body is not valid JSON         | 400    | `validation_failed`, field `body`, "must be valid JSON"    | no         | no        |
+| Valid JSON, not an object      | 400    | `validation_failed`, field `body`, "must be a JSON object" | no         | no        |
+| `company` non-empty (honeypot) | 200    | `{"ok":true}`                                              | no         | no        |
+| Schema fails                   | 400    | `validation_failed`, field = first failing key             | no         | no        |
+
+Check order: parse JSON → object check → honeypot → `leadSchema`. An invalid body with `company` filled returns 200.
+| `LEAD_WEBHOOK_URL` unset | 503 | `lead_destination_unavailable` | no | no |
+| n8n non-2xx | 502 | `upstream_error` | yes | no |
+| n8n timeout (10 s) | 504 | `upstream_timeout` | yes | no |
+| n8n 2xx | 200 | `{"ok":true}` | yes | yes, after 2xx |
+
+- Forwarded keys to n8n: `full_name`, `phone` (E.164), `email`, `service`, `zip`, `submitted_at`, `event_id`.
+- Meta CAPI Lead fires only after n8n 2xx (`src/lib/lead.server.ts`). CAPI failure logs only and never changes the response.
+- CAPI user data: `client_user_agent`, `fbp`, `fbc`, `em` (SHA-256 of trimmed lowercase email), `ph` (SHA-256 of digits, with country code `1` added to 10-digit numbers). Source: `src/lib/meta-capi.server.ts`.
+
+### Black Friday lead rules (`POST /blackfriday/api/lead`)
+
+Source: `src/lib/bf-lead.server.ts`.
+
+| Field                                                                                         | Rule                                 | Failure                     |
+| --------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------- |
+| `first_name`                                                                                  | trimmed, 1–60 chars                  | 422 `invalid`, field listed |
+| `phone`                                                                                       | E.164, must match `^\+1[2-9]\d{9}$`  | 422 `invalid`, field listed |
+| `zip`                                                                                         | exactly 5 digits                     | 422 `invalid`, field listed |
+| `email`                                                                                       | optional; valid email when non-empty | 422 `invalid`, field listed |
+| `project_type`                                                                                | one of 3 enum values                 | 422 `invalid`, field listed |
+| `event_id`                                                                                    | `^[\w-]{6,64}$`                      | 422 `invalid`, field listed |
+| attribution (`utm_*`, `fbclid`, `gclid`, `page_url`, `landing_url`, `referrer`, `fbp`, `fbc`) | optional, truncated                  | never rejected              |
+
+- Honeypot: non-empty `company` → 200 `{"ok":true}`, nothing forwarded.
+- Forward: all parsed fields except `fbp` and `fbc`, plus `submitted_at`, sent to `BF_LEAD_WEBHOOK_URL` (timeout 15 s; n8n replies only after Kommo).
+- CAPI: sent after the n8n 2xx. `eventSourceUrl` = `page_url`. `em` is omitted when email is empty.
+- Client (`public/blackfriday/js/main.js`): reads `api/lead` from `public/blackfriday/js/config.js` (`LEAD_ENDPOINT`). Only an HTTP 2xx with `ok: true` redirects to `thank-you/?eid=`. Any other result shows a call-to-phone message.
+- `/` and `/blackfriday` differ on validation: `/` returns 400 with one field. `/blackfriday` returns 422 with every failing field.
+
+### Browser Lead dedupe
+
+- `/`: `thank-you.tsx` reads `mtr_lead_event_id` from `sessionStorage`, removes it, then calls `trackLead(id)`. A reload or direct visit fires nothing (`src/routes/thank-you.tsx`).
+- `trackLead` fires `fbq('track','Lead',{},{eventID})` and `gtag('event','generate_lead')` once per event id per page load (`src/lib/tracking.ts`).
+- Same `event_id` goes to Meta CAPI on the server, so the browser and server Lead events dedupe on Meta's side.
+- `/blackfriday/thank-you/?eid=`: `main.js` fires `fbq('track','Lead',{},{eventID: eid})` and `gtag('event','generate_lead',{event_id: eid})` once per `eid`. Dedupe key `mtr_lead_fired_<eid>` is checked in `sessionStorage` then `localStorage`; it is written to both after firing, so a reload fires nothing (`public/blackfriday/js/main.js`).
+
+### Tracking gating
+
+- `/` (main LP): Meta Pixel loads only when `META_PIXEL_ID` matches `^\d{5,20}$`. GA4 loads only when `GA4_MEASUREMENT_ID` matches `^G-[A-Z0-9]{4,20}$`. Invalid values become `null` (`src/lib/public-config.ts`).
+- `/blackfriday` (static LP): the Pixel ID is hardcoded in `public/blackfriday/js/config.js` (`META_PIXEL_ID`), not read from the env var. Pixel and GA4 load only when the host is not localhost/127.0.0.1/[::1] and the ID is set (`public/blackfriday/js/main.js`).
+- Server CAPI (both forms) is controlled by the env vars `META_PIXEL_ID` and `META_CAPI_ACCESS_TOKEN` (both required, `src/lib/meta-capi.server.ts`). It does not read `config.js`, so the Black Friday browser Pixel and the server CAPI can use different IDs.
+- Scripts are injected by the root route `head` (`src/routes/__root.tsx`). With no ID configured, no script is added.
+- VSL URL (`VSL_VIDEO_URL`) must parse as `https:`, else `null`.
+- VSL events: play fires once. Progress fires at 25, 50, 75, and 95 percent of duration, each once per page load (`src/components/landing/vsl.tsx`, `src/lib/tracking.ts`).
 
 ### Service catalog (form options)
 
-| `SERVICE_OPTIONS` value |
-|---|
-| Bathroom Remodeling |
-| Flooring Installation |
-| Kitchen Remodeling |
-| Custom Carpentry & Finish Woodwork |
+| `SERVICE_OPTIONS` value             |
+| ----------------------------------- |
+| Bathroom Remodeling                 |
+| Flooring Installation               |
+| Kitchen Remodeling                  |
+| Custom Carpentry & Finish Woodwork  |
 | General Repairs & Interior Painting |
 
-- To extend, add a string to `SERVICE_OPTIONS` in `interactive.tsx`. The zod check only requires a non-empty value.
+- To extend, add a string to `SERVICE_OPTIONS` in `src/lib/lead-schema.ts`. The form and the server enum (`z.enum`) both read that array.
 
 ### Delivery process (7 steps)
 
 - Defined by `STEPS` in `src/components/landing/sections.tsx` (`ProcessSection`):
 
-| n | Step |
-|---|---|
-| 01 | Dedicated One-on-One Consultation |
-| 02 | Technical Site Visit & Structural Assessment |
-| 03 | Transparent, Itemized Estimate |
-| 04 | Material Procurement & Guidance |
-| 05 | Streamlined Construction & Daily Updates |
-| 06 | Deep Clean & Key Handover |
-| 07 | Post-Project Inspection & Warranty |
+| n   | Step                                         |
+| --- | -------------------------------------------- |
+| 01  | Dedicated One-on-One Consultation            |
+| 02  | Technical Site Visit & Structural Assessment |
+| 03  | Transparent, Itemized Estimate               |
+| 04  | Material Procurement & Guidance              |
+| 05  | Streamlined Construction & Daily Updates     |
+| 06  | Deep Clean & Key Handover                    |
+| 07  | Post-Project Inspection & Warranty           |
 
 ### Competitive comparison matrix
 
 - Defined by `COMPARISON` in `sections.tsx` (`ComparisonSection`). Rows are features; columns are provider types:
 
-| Feature | Handyman | Large Contractor Companies | My Team Renovation |
-|---|---|---|---|
-| Communication | Poor; hard to reach, slow to reply. | Bureaucratic; phone trees and automated emails. | Direct, continuous, in real time with the owner. |
-| Deadlines | Unpredictable; schedules shift week by week. | Extended and bloated by slow corporate processes. | Fastest turnarounds in the market — bathroom in 5 days. |
-| Finishing Work | Amateur; lacks precision for high-end properties. | Standardized; assembly-line results with no flexibility. | Meticulous attention backed by premium craftsmanship. |
-| Cleanliness | Debris and dust piled throughout your home. | Cleanup delayed until the final week. | Vacuumed and squared away at the end of every shift. |
-| Warranty | Hard to reach or missing entirely. | Slow corporate approval to send a technician. | Formal 1-year warranty with local priority support. |
+| Feature        | Handyman                                          | Large Contractor Companies                               | My Team Renovation                                      |
+| -------------- | ------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| Communication  | Poor; hard to reach, slow to reply.               | Bureaucratic; phone trees and automated emails.          | Direct, continuous, in real time with the owner.        |
+| Deadlines      | Unpredictable; schedules shift week by week.      | Extended and bloated by slow corporate processes.        | Fastest turnarounds in the market — bathroom in 5 days. |
+| Finishing Work | Amateur; lacks precision for high-end properties. | Standardized; assembly-line results with no flexibility. | Meticulous attention backed by premium craftsmanship.   |
+| Cleanliness    | Debris and dust piled throughout your home.       | Cleanup delayed until the final week.                    | Vacuumed and squared away at the end of every shift.    |
+| Warranty       | Hard to reach or missing entirely.                | Slow corporate approval to send a technician.            | Formal 1-year warranty with local priority support.     |
 
 - To extend, add an object `{ feature, handy, big, mtr }` to `COMPARISON`.
 
@@ -77,18 +155,19 @@ const formSchema = z.object({
 
 ### Pricing and materials policy (FAQ copy)
 
-- `FAQS` in `interactive.tsx`:
-  - The approved proposal price is final. Scope changes require an itemized change order that the client approves before the work starts.
-  - The company buys the structural materials. The client picks the finishes with design guidance and access to wholesale distributors.
+- `FAQS` in `src/components/landing/interactive.tsx`:
+  - The price locked in the approved proposal is final. Scope changes go through a change order.
+  - The company handles logistics for structural materials. The client picks visual finishes, with access to wholesale distributors.
   - Demolition starts only after 100% of the materials are on site.
 
 ### Call-to-action routing
 
-- `GoldCTA` defaults to `href = "#contact"` (`primitives.tsx`). The header "Free Estimate" link, the hero CTA, and `FinalCtaSection` also link to `#contact`.
-- Header nav (`NAV` in `chrome.tsx`): `#why`, `#services`, `#process`, `#faq`.
+- `GoldCTA` defaults to `href = "#contact"` (`src/components/landing/primitives.tsx`). The estimate CTA in `sections.tsx` uses that default.
+- Header CTA label: `headerCtaLabel` = "Free Estimate" (`src/components/landing/site-data.ts`, `chrome.tsx`).
+- Header nav (`NAV` in `src/components/landing/chrome.tsx`): `#why`, `#services`, `#process`, `#faq`.
 
 ## Related documents
 
-- [`project_overview.md`](project_overview.md) — purpose and macro flow
-- [`api_contracts.md`](api_contracts.md) — absence of a backend for the form
-- [`data_model.md`](data_model.md) — absence of persistence
+- [`project_overview.md`](project_overview.md) — purpose and macro flows for both lead forms
+- [`api_contracts.md`](api_contracts.md) — endpoint shapes, status codes, and fixture payloads behind these rules
+- [`data_model.md`](data_model.md) — browser storage keys and the absence of server persistence

@@ -5,4 +5,6 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
-See @AGENTS.md for project conventions, commands, and references.
+Project conventions, commands, and references live in AGENTS.md, imported below.
+
+@AGENTS.md

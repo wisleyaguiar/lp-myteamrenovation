@@ -6,43 +6,63 @@
 
 ### Purpose
 
-Server-renders a single-page marketing landing site for My Team Renovation, an owner-led US home remodeling business run by Leonardo Brandão. The page drives visitors to a consultation contact form (`src/routes/index.tsx`, `README.md` "# Home Renovation Hub").
+Server-renders the My Team Renovation marketing site (owner-led home remodeling, run by Leonardo Brandão) and forwards consultation leads from `/` and the static `/blackfriday` page to n8n (`src/routes/index.tsx`, `src/routes/api/lead.ts`, `public/blackfriday/index.html`).
 
 ### Business problem
 
 - Prospects need a reason to pick an owner-led local firm over a handyman or a large contractor. `ComparisonSection` and `LateLessonsSection` in `src/components/landing/sections.tsx` make that case.
 - The page states the firm's commitments: single bathroom in 5 days, daily cleanups, 1-year warranty, direct contact with the owner (`WHY_BULLETS`, `PRECISION`, `COMPARISON` in `sections.tsx`).
 - Calls to action point visitors to the `#contact` form. `GoldCTA` defaults to `href = "#contact"` (`src/components/landing/primitives.tsx`).
+- Campaign leads need attribution: UTM, `fbclid`, and `gclid` are captured and forwarded with the lead (`src/lib/bf-lead.server.ts`).
+- Ad platforms need the conversion: a browser `Lead` event and a server `Lead` event (Meta CAPI) share one `event_id` (`src/lib/tracking.ts`, `src/lib/meta-capi.server.ts`).
 
 ### Consumers and integrations
 
-| System | Role |
-|---|---|
-| Browser visitors | Load `/`, scroll the anchored sections (`#why`, `#services`, `#process`, `#faq`, `#contact`) |
-| Social and search crawlers | Read OG, Twitter, and description meta from `src/routes/__root.tsx` and `src/routes/index.tsx` |
-| Google Fonts | Serve Playfair Display and Inter, linked in `__root.tsx` |
-| Cloudflare R2 public bucket (`pub-…r2.dev`) | Hosts the `og:image` / `twitter:image` |
-| Lovable host (`window.__lovableEvents`) | Receives errors from the React error boundary (`src/lib/lovable-error-reporting.ts`) |
-| Lovable preview host (`id-preview--<project_id>.lovable.app`) | Supplies asset binaries to `scripts/download-assets.mjs` |
-| Coolify (`aguiardev.online`) | Deploys on push to `main` (`.github/workflows/coolify-deploy.yml`) |
+| System                                          | Role                                                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser visitors                                | Load `/`, `/thank-you`, `/blackfriday/`; submit the forms; scroll the anchored sections (`#why`, `#services`, `#process`, `#faq`, `#contact`)  |
+| Social and search crawlers                      | Read OG, Twitter, and description meta from `src/routes/__root.tsx` and `src/routes/index.tsx`                                                 |
+| Google Fonts                                    | Serve Playfair Display and Inter, linked in `__root.tsx`                                                                                       |
+| n8n (`LEAD_WEBHOOK_URL`, `BF_LEAD_WEBHOOK_URL`) | Receives lead JSON from `/api/lead` and `/blackfriday/api/lead`                                                                                |
+| Kommo CRM                                       | Receives Black Friday leads through the n8n workflow (`src/lib/bf-lead.server.ts` comment)                                                     |
+| Meta Graph API `v23.0`                          | Receives the server `Lead` event (CAPI) after the n8n 2xx (`src/lib/meta-capi.server.ts`)                                                      |
+| Meta Pixel and GA4 (browser)                    | Receive `PageView`, `Lead`, and VSL events. `/`: when the env IDs are valid (`src/lib/tracking.ts`). `/blackfriday`: Pixel ID from `config.js` |
+| Lovable host (`window.__lovableEvents`)         | Receives errors from the React error boundary (`src/lib/lovable-error-reporting.ts`)                                                           |
+| Lovable preview host                            | Supplies asset binaries to `scripts/download-assets.mjs`                                                                                       |
+| Coolify (`aguiardev.online`)                    | Deploys on push to `main` (`.github/workflows/coolify-deploy.yml`)                                                                             |
 
 ### Macro flow
 
+Lead on `/`:
+
 1. A browser sends `GET /` to the Nitro node-server (`node .output/server/index.mjs`, PORT 3000).
 2. `src/server.ts` lazy-loads `@tanstack/react-start/server-entry`. The request passes through `errorMiddleware` (`src/start.ts`).
-3. `getRouter()` (`src/router.tsx`) resolves the `/` route and renders the `RootShell` HTML with head meta.
-4. `Index` renders `SiteHeader`, 17 sections, `SiteFooter`, and a sonner `Toaster`.
-5. The visitor submits `ContactFormSection`. zod validates the input, the code waits 800 ms, a success toast appears, and a "Thank you." panel replaces the form. No data leaves the browser.
-6. If SSR fails, the server returns the HTML from `renderErrorPage()` with status 500 (`src/lib/error-page.ts`).
+3. `getRouter()` (`src/router.tsx`) resolves the route. The root loader `getPublicConfig()` returns the Pixel, GA4, and VSL values. `__root.tsx` injects the Pixel and GA4 scripts only when their IDs are set.
+4. `Index` renders 17 sections, `SiteFooter`, and a sonner `Toaster`.
+5. The visitor submits `ContactFormSection`. The browser validates with `leadSchema` and POSTs to `/api/lead`.
+6. `handleLead` validates again, drops honeypot submits, and POSTs to `LEAD_WEBHOOK_URL` (n8n).
+7. After an n8n 2xx, `sendCapiLead` posts a Meta `Lead` event with the same `event_id`. The response is `200 {"ok":true}`.
+8. The browser stores `mtr_lead_event_id` in `sessionStorage` and navigates to `/thank-you`. That page fires the browser `Lead` once.
+9. If SSR fails, `renderErrorPage()` returns a 500 HTML page (`src/lib/error-page.ts`).
+
+Lead on `/blackfriday`:
+
+1. The browser loads the static `public/blackfriday/index.html`. `public/blackfriday/js/config.js` and `public/blackfriday/js/main.js` run. The Pixel ID comes from `config.js`.
+2. On submit, `main.js` collects attribution, sets `event_id`, and POSTs JSON to `api/lead`, which resolves to `/blackfriday/api/lead`.
+3. `handleBfLead` validates (422 on failure) and POSTs to `BF_LEAD_WEBHOOK_URL` (n8n → Kommo).
+4. After an n8n 2xx, `sendCapiLead` posts the Meta `Lead` event. The response is `200 {"ok":true}`.
+5. `main.js` navigates to `/blackfriday/thank-you/?eid=…`. That page fires the browser `Lead` with the same `eid`.
 
 ### Out of scope
 
-- Lead capture and storage: the contact form sends nothing (`src/components/landing/interactive.tsx`, `onSubmit`).
-- Pages other than `/`: `src/routes/` holds only `__root.tsx` and `index.tsx`.
+- Lead storage and CRM follow-up: this repo stores nothing. n8n and Kommo handle storage (`src/lib/lead.server.ts`, `src/lib/bf-lead.server.ts`).
+- Asynchronous work: no queue, broker, or cron. Leads POST synchronously to n8n (`src/lib/lead.server.ts`).
+- Other app routes: `src/routes/` holds `__root.tsx`, `index.tsx`, `thank-you.tsx`, and two API routes. The Black Friday pages are static HTML under `public/blackfriday/`.
 - Contact by email or website: the footer links to `mailto:contact@myteamrenovation.com` and `https://www.myteamrenovation.com` (`src/components/landing/chrome.tsx`).
 
 ## Related documents
 
-- [`architecture.md`](architecture.md) — layout, layers, SSR and error flow
-- [`domain_rules.md`](domain_rules.md) — business claims and form rules encoded in components
+- [`architecture.md`](architecture.md) — layout, layers, SSR and lead-intake flows
+- [`api_contracts.md`](api_contracts.md) — endpoints, status codes, and fixture payloads
+- [`domain_rules.md`](domain_rules.md) — lead validation, routing, and tracking rules encoded in code
 - [`tech_stack.md`](tech_stack.md) — languages, frameworks, tooling versions
