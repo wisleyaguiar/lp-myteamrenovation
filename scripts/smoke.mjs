@@ -12,7 +12,13 @@ const PUBLIC_DIR = ".output/public";
 const SECRET_PATH = "/webhook/smoke-secret-9f3a";
 const CAPI_TOKEN = "SMOKE_CAPI_TOKEN_9f3a";
 // Valores (runtime) e nomes das variáveis secretas: o nome no bundle público denuncia leitura no cliente.
-const LEAKABLE = [SECRET_PATH, CAPI_TOKEN, "META_CAPI_ACCESS_TOKEN", "LEAD_WEBHOOK_URL"];
+const LEAKABLE = [
+  SECRET_PATH,
+  CAPI_TOKEN,
+  "META_CAPI_ACCESS_TOKEN",
+  "LEAD_WEBHOOK_URL",
+  "BF_LEAD_WEBHOOK_URL",
+];
 
 let failures = 0;
 function check(name, ok, detail = "") {
@@ -83,8 +89,21 @@ const validLead = () => ({
   event_source_url: "https://myteamrenovation.com/",
 });
 
-const post = (app, body) =>
-  fetch(`${app.base}/api/lead`, {
+const validBfLead = () => ({
+  first_name: "Smoke",
+  phone: "(281) 555-0100",
+  zip: "77494",
+  email: "",
+  project_type: "Replace a tub with a walk-in shower",
+  event_id: crypto.randomUUID(),
+  page_url: "https://myteamrenovation.com/blackfriday/",
+  utm_source: "facebook",
+  company: "",
+  cta: "form",
+});
+
+const post = (app, body, path = "/api/lead") =>
+  fetch(`${app.base}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: typeof body === "string" ? body : JSON.stringify(body),
@@ -102,6 +121,7 @@ const trackingEnv = TRACKING
   : {};
 const app = await startApp(3101, {
   LEAD_WEBHOOK_URL: fakeUrl,
+  BF_LEAD_WEBHOOK_URL: fakeUrl,
   META_CAPI_ACCESS_TOKEN: CAPI_TOKEN,
   META_CAPI_BASE_URL: metaUrl,
   ...trackingEnv,
@@ -173,6 +193,82 @@ try {
   mode = "OK";
   for (const s of fakeSockets) s.destroy();
 
+  // LP Black Friday (public/blackfriday + /blackfriday/api/lead).
+  const BF = "/blackfriday/api/lead";
+  // Com e sem barra final: o HTML usa caminhos absolutos /blackfriday/…, então nenhum quebra.
+  let bfHtml = "";
+  for (const path of ["/blackfriday", "/blackfriday/"]) {
+    res = await fetch(`${app.base}${path}?utm_source=fb`, { redirect: "manual" });
+    bfHtml = await res.text();
+    check(
+      `${path} → 200 com o form e sem caminho relativo`,
+      res.status === 200 &&
+        bfHtml.includes('name="project_type"') &&
+        !/(?:href|src|srcset|content)="(?:assets|css|js|privacy|thank-you)\//.test(bfHtml),
+      `status ${res.status}`,
+    );
+  }
+  const assets = await Promise.all(
+    [
+      "/blackfriday/css/styles.css",
+      "/blackfriday/js/main.js",
+      "/blackfriday/js/config.js",
+      "/blackfriday/thank-you/",
+      "/blackfriday/privacy/",
+    ].map((p) => fetch(`${app.base}${p}`).then((r) => r.status)),
+  );
+  check(
+    "CSS, JS, thank-you e privacy → 200",
+    assets.every((s) => s === 200),
+    assets.join(","),
+  );
+
+  before = hits.length;
+  const bf = { ...validBfLead(), email: " Smoke.BF@Example.com " };
+  res = await post(app, bf, BF);
+  const bfSent = hits.length === before + 1 ? JSON.parse(hits.at(-1).body) : {};
+  check("BF lead válido → 200 ok", res.status === 200 && (await res.json()).ok === true);
+  check(
+    "BF payload ao n8n",
+    bfSent.first_name === "Smoke" &&
+      bfSent.phone === "+12815550100" &&
+      bfSent.email === "smoke.bf@example.com" &&
+      bfSent.project_type === bf.project_type &&
+      bfSent.zip === "77494" &&
+      bfSent.utm_source === "facebook" &&
+      bfSent.event_id === bf.event_id &&
+      !("fbp" in bfSent) &&
+      !Number.isNaN(Date.parse(bfSent.submitted_at)),
+    JSON.stringify(bfSent),
+  );
+  res = await post(app, validBfLead(), BF);
+  check("BF sem e-mail → 200", res.status === 200, `status ${res.status}`);
+
+  for (const [field, value] of [
+    ["phone", "555-0100"],
+    ["phone", "(181) 555-0100"],
+    ["zip", "7749"],
+    ["email", "not-an-email"],
+    ["project_type", "Kitchen"],
+    ["event_id", "x"],
+    ["first_name", " "],
+  ]) {
+    res = await post(app, { ...validBfLead(), [field]: value }, BF);
+    const j = await res.json().catch(() => ({}));
+    check(
+      `BF ${field} ${JSON.stringify(value)} → 422`,
+      res.status === 422 && j.fields?.includes(field),
+      `status ${res.status} ${JSON.stringify(j)}`,
+    );
+  }
+  before = hits.length;
+  res = await post(app, { ...validBfLead(), company: "Spam Inc" }, BF);
+  check("BF honeypot → 200 sem n8n", res.status === 200 && hits.length === before);
+  mode = "FAIL";
+  res = await post(app, validBfLead(), BF);
+  mode = "OK";
+  check("BF n8n 500 → 502 (visitante vê 'ligue')", res.status === 502, `status ${res.status}`);
+
   // Rotas.
   const thanks = await (await fetch(`${app.base}/thank-you`)).text();
   check(
@@ -213,7 +309,9 @@ try {
   );
   check(
     "segredos fora do HTML e dos logs",
-    ![home, thanks, app.logs()].some((t) => t.includes(SECRET_PATH) || t.includes(CAPI_TOKEN)),
+    ![home, thanks, bfHtml, app.logs()].some(
+      (t) => t.includes(SECRET_PATH) || t.includes(CAPI_TOKEN),
+    ),
   );
 } finally {
   app.stop();
@@ -223,6 +321,7 @@ try {
 const sha = (v) => createHash("sha256").update(v).digest("hex");
 const capi = await startApp(3103, {
   LEAD_WEBHOOK_URL: fakeUrl,
+  BF_LEAD_WEBHOOK_URL: fakeUrl,
   META_PIXEL_ID: "000000000000000",
   META_CAPI_ACCESS_TOKEN: CAPI_TOKEN,
   META_CAPI_TEST_EVENT_CODE: "TEST_SMOKE",
@@ -264,6 +363,16 @@ try {
       ev.user_data?.fbc === "fb.1.1.3",
     call?.body,
   );
+  before = metaHits.length;
+  await post(capi, validBfLead(), "/blackfriday/api/lead");
+  const bfEv = metaHits.length === before + 1 ? JSON.parse(metaHits.at(-1).body).data?.[0] : {};
+  check(
+    "CAPI BF sem e-mail: sem em, com ph e event_source_url",
+    !bfEv?.user_data?.em &&
+      bfEv?.user_data?.ph?.[0] === sha("12815550100") &&
+      bfEv?.event_source_url === "https://myteamrenovation.com/blackfriday/",
+    JSON.stringify(bfEv),
+  );
   check(
     "CAPI: sem e-mail ou telefone em claro",
     !!call && !/smoke\.capi@example/i.test(call.body) && !call.body.includes("5550100"),
@@ -302,7 +411,7 @@ try {
 }
 
 // Sem LEAD_WEBHOOK_URL → 503.
-const bare = await startApp(3102, { LEAD_WEBHOOK_URL: "" });
+const bare = await startApp(3102, { LEAD_WEBHOOK_URL: "", BF_LEAD_WEBHOOK_URL: "" });
 try {
   const res = await post(bare, validLead());
   const j = await res.json().catch(() => ({}));
@@ -311,6 +420,8 @@ try {
     res.status === 503 && j.error === "lead_destination_unavailable",
     `status ${res.status}`,
   );
+  const bfRes = await post(bare, validBfLead(), "/blackfriday/api/lead");
+  check("sem BF_LEAD_WEBHOOK_URL → 503", bfRes.status === 503, `status ${bfRes.status}`);
 } finally {
   bare.stop();
 }

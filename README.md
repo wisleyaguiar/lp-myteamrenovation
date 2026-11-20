@@ -279,19 +279,19 @@ docker run -p 3000:3000 lp-myteamrenovation
 2. A Action realiza uma requisição POST autenticada para o webhook da sua instância Coolify utilizando o secret `COOLIFY_API_TOKEN`.
 3. O Coolify baixa a branch `main`, reconstrói a imagem Docker e publica a versão mais recente com zero downtime.
 
-
 ## Variáveis de ambiente e checklist de deploy
 
 Todas são lidas em **runtime** (Coolify → Environment Variables); trocar um valor exige só redeploy, sem rebuild de código. Modelo em [`.env.example`](.env.example). **Nunca commitar valores.**
 
-| Variável | Escopo | Efeito quando ausente | Onde configurar |
-|---|---|---|---|
-| `LEAD_WEBHOOK_URL` | Servidor | `POST /api/lead` responde 503 `lead_destination_unavailable`; nenhum lead é entregue | Coolify (runtime) |
-| `META_CAPI_ACCESS_TOKEN` | Servidor | Conversions API desativada; o Pixel do browser segue funcionando | Coolify (runtime) |
-| `META_CAPI_TEST_EVENT_CODE` | Servidor | Eventos da CAPI vão para produção (normal). Definir só durante a validação no Test Events | Coolify (runtime) |
-| `META_PIXEL_ID` | Pública (loader da raiz) | Sem Pixel no HTML; a CAPI também não envia | Coolify (runtime) |
-| `GA4_MEASUREMENT_ID` | Pública (loader da raiz) | Sem GA4 no HTML | Coolify (runtime) |
-| `VSL_VIDEO_URL` | Pública (loader da raiz) | Sem cartão de vídeo no hero | Coolify (runtime) |
+| Variável                    | Escopo                   | Efeito quando ausente                                                                                                                | Onde configurar   |
+| --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| `LEAD_WEBHOOK_URL`          | Servidor                 | `POST /api/lead` responde 503 `lead_destination_unavailable`; nenhum lead é entregue                                                 | Coolify (runtime) |
+| `BF_LEAD_WEBHOOK_URL`       | Servidor                 | LP `/blackfriday`: `POST /blackfriday/api/lead` responde 503 e o visitante vê "ligue para nós" (workflow n8n "LP Black Friday 2026") | Coolify (runtime) |
+| `META_CAPI_ACCESS_TOKEN`    | Servidor                 | Conversions API desativada; o Pixel do browser segue funcionando                                                                     | Coolify (runtime) |
+| `META_CAPI_TEST_EVENT_CODE` | Servidor                 | Eventos da CAPI vão para produção (normal). Definir só durante a validação no Test Events                                            | Coolify (runtime) |
+| `META_PIXEL_ID`             | Pública (loader da raiz) | Sem Pixel no HTML; a CAPI também não envia                                                                                           | Coolify (runtime) |
+| `GA4_MEASUREMENT_ID`        | Pública (loader da raiz) | Sem GA4 no HTML                                                                                                                      | Coolify (runtime) |
+| `VSL_VIDEO_URL`             | Pública (loader da raiz) | Sem cartão de vídeo no hero                                                                                                          | Coolify (runtime) |
 
 Valores públicos inválidos (Pixel fora de `^\d{5,20}$`, GA4 fora de `^G-[A-Z0-9]{4,20}$`, vídeo que não seja `https://`) são tratados como ausentes.
 

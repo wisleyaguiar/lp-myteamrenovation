@@ -48,7 +48,8 @@ export async function sendCapiLead(lead: CapiLead): Promise<void> {
               ...(lead.userAgent ? { client_user_agent: lead.userAgent } : {}),
               ...(lead.fbp ? { fbp: lead.fbp } : {}),
               ...(lead.fbc ? { fbc: lead.fbc } : {}),
-              em: [sha256(lead.email.trim().toLowerCase())],
+              // E-mail é opcional na LP Black Friday.
+              ...(lead.email.trim() ? { em: [sha256(lead.email.trim().toLowerCase())] } : {}),
               ph: [sha256(phoneDigits(lead.phone))],
             },
           },

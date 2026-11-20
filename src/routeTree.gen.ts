@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as ApiLeadRouteImport } from './routes/api/lead'
+import { Route as BlackfridayApiLeadRouteImport } from './routes/blackfriday/api/lead'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const ApiLeadRoute = ApiLeadRouteImport.update({
   path: '/api/lead',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlackfridayApiLeadRoute = BlackfridayApiLeadRouteImport.update({
+  id: '/blackfriday/api/lead',
+  path: '/blackfriday/api/lead',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/thank-you': typeof ThankYouRoute
   '/api/lead': typeof ApiLeadRoute
+  '/blackfriday/api/lead': typeof BlackfridayApiLeadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/thank-you': typeof ThankYouRoute
   '/api/lead': typeof ApiLeadRoute
+  '/blackfriday/api/lead': typeof BlackfridayApiLeadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/thank-you': typeof ThankYouRoute
   '/api/lead': typeof ApiLeadRoute
+  '/blackfriday/api/lead': typeof BlackfridayApiLeadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/thank-you' | '/api/lead'
+  fullPaths: '/' | '/thank-you' | '/api/lead' | '/blackfriday/api/lead'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/thank-you' | '/api/lead'
-  id: '__root__' | '/' | '/thank-you' | '/api/lead'
+  to: '/' | '/thank-you' | '/api/lead' | '/blackfriday/api/lead'
+  id: '__root__' | '/' | '/thank-you' | '/api/lead' | '/blackfriday/api/lead'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ThankYouRoute: typeof ThankYouRoute
   ApiLeadRoute: typeof ApiLeadRoute
+  BlackfridayApiLeadRoute: typeof BlackfridayApiLeadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLeadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blackfriday/api/lead': {
+      id: '/blackfriday/api/lead'
+      path: '/blackfriday/api/lead'
+      fullPath: '/blackfriday/api/lead'
+      preLoaderRoute: typeof BlackfridayApiLeadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ThankYouRoute: ThankYouRoute,
   ApiLeadRoute: ApiLeadRoute,
+  BlackfridayApiLeadRoute: BlackfridayApiLeadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
